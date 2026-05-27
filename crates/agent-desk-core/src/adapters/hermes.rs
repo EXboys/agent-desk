@@ -54,15 +54,13 @@ impl HermesAdapter {
             "ollama" | "local" => None,
             _ => None,
         };
-        known
-            .map(str::to_string)
-            .or_else(|| {
-                if provider.is_empty() {
-                    None
-                } else {
-                    Some(format!("{}_API_KEY", provider.to_uppercase()))
-                }
-            })
+        known.map(str::to_string).or_else(|| {
+            if provider.is_empty() {
+                None
+            } else {
+                Some(format!("{}_API_KEY", provider.to_uppercase()))
+            }
+        })
     }
 
     fn mask_api_key(value: &str) -> String {
@@ -84,7 +82,8 @@ impl HermesAdapter {
         if !path.exists() {
             return Ok(None);
         }
-        let raw = fs::read_to_string(path).with_context(|| format!("failed to read {}", path.display()))?;
+        let raw = fs::read_to_string(path)
+            .with_context(|| format!("failed to read {}", path.display()))?;
         for line in raw.lines() {
             let line = line.trim();
             if line.is_empty() || line.starts_with('#') {
@@ -94,7 +93,13 @@ impl HermesAdapter {
                 continue;
             };
             if name.trim() == key {
-                return Ok(Some(value.trim().trim_matches('"').trim_matches('\'').to_string()));
+                return Ok(Some(
+                    value
+                        .trim()
+                        .trim_matches('"')
+                        .trim_matches('\'')
+                        .to_string(),
+                ));
             }
         }
         Ok(None)
@@ -150,9 +155,7 @@ impl HermesAdapter {
         };
         let path = Self::secrets_path();
         let value = Self::read_env_value(&path, &env_var)?;
-        let configured = value
-            .as_ref()
-            .is_some_and(|entry| !entry.trim().is_empty());
+        let configured = value.as_ref().is_some_and(|entry| !entry.trim().is_empty());
         Ok(Some(HermesApiKeyStatus {
             env_var,
             configured,
@@ -388,7 +391,8 @@ mod tests {
     fn writes_and_reads_api_key_env_lines() {
         let temp = TempDir::new().expect("tempdir");
         let env_path = temp.path().join(".env");
-        HermesAdapter::write_env_value(&env_path, "DEEPSEEK_API_KEY", "sk-test-secret-key").unwrap();
+        HermesAdapter::write_env_value(&env_path, "DEEPSEEK_API_KEY", "sk-test-secret-key")
+            .unwrap();
         let value = HermesAdapter::read_env_value(&env_path, "DEEPSEEK_API_KEY").unwrap();
         assert_eq!(value.as_deref(), Some("sk-test-secret-key"));
     }

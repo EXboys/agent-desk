@@ -1,7 +1,6 @@
 use agent_desk_core::{
-    load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport,
-    DoctorReport, HermesSettings, ProfilesDocument, RuntimeModelPreset, UseProfileReport,
-    HermesAdapter,
+    load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport, DoctorReport,
+    HermesAdapter, HermesSettings, ProfilesDocument, RuntimeModelPreset, UseProfileReport,
 };
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{Emitter, Manager};

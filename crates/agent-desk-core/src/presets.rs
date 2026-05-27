@@ -185,7 +185,10 @@ pub fn set_runtime_model(
         return HermesAdapter.apply_settings(&preset, api_key);
     }
     if api_key.is_some() {
-        anyhow::bail!("{} does not support API key updates yet", adapter.display_name());
+        anyhow::bail!(
+            "{} does not support API key updates yet",
+            adapter.display_name()
+        );
     }
     adapter.apply_model(&preset)
 }
