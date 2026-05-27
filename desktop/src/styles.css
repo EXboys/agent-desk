@@ -624,6 +624,7 @@ body::before {
 .runtime-tab-icon {
   width: 22px;
   height: 22px;
+  min-width: 22px;
   border-radius: 7px;
   display: grid;
   place-items: center;
@@ -663,6 +664,10 @@ body::before {
 
 .runtime-tab.claude-code .runtime-tab-icon {
   background: linear-gradient(135deg, #c2410c, #f97316);
+}
+
+.runtime-tab.codex .runtime-tab-icon {
+  background: linear-gradient(135deg, #1d4ed8, #38bdf8);
 }
 
 .runtime-tab.default .runtime-tab-icon {

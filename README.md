@@ -16,7 +16,7 @@ Developers often run **several** local agents at once:
 | [OpenClaw](https://github.com/openclaw/openclaw)              | `~/.openclaw/openclaw.json` |
 | [Hermes Agent](https://github.com/nousresearch/hermes-agent)  | `~/.hermes/config.yaml`     |
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/settings.json`   |
-| Codex CLI                                                     | provider env / config       |
+| Codex CLI                                                     | `~/.codex/config.toml`      |
 
 
 Each tool has its own install path, gateway settings, and skills manifest. Agent Desk gives you **one** place to answer:
