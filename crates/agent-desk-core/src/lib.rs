@@ -8,7 +8,7 @@ pub use adapter::{
     AdapterDiscovery, ApplyReport, RuntimeAdapter, RuntimeModelPreset, RuntimeModelState,
     RuntimeProfile,
 };
-pub use adapters::{adapter_by_id, all_adapters, HermesAdapter, HermesSettings};
+pub use adapters::{adapter_by_id, all_adapters, CodexAdapter, HermesAdapter, HermesSettings};
 pub use doctor::{run_doctor, DoctorReport, RuntimeDoctorResult};
 pub use presets::{
     apply_profile_model, default_local_hermes_preset, default_work_models, effective_models,

@@ -16,5 +16,5 @@ Each adapter implements:
 | `openclaw` | P0 | `crates/agent-desk-core/src/adapters/openclaw.rs` |
 | `claude-code` | P0 | `crates/agent-desk-core/src/adapters/claude_code.rs` |
 | `hermes` | P0 | `crates/agent-desk-core/src/adapters/hermes.rs` |
-| `codex` | P1 | — |
+| `codex` | P1 | `crates/agent-desk-core/src/adapters/codex.rs` |
 | `skilllite` | P2 | — |

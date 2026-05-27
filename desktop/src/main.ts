@@ -89,6 +89,7 @@ const RUNTIME_SHORT: Record<string, string> = {
   openclaw: "OC",
   hermes: "HE",
   "claude-code": "CC",
+  codex: "CX",
 };
 
 interface HermesModelOption {

@@ -1,9 +1,11 @@
 mod claude_code;
+mod codex;
 mod hermes;
 mod openclaw;
 mod util;
 
 pub use claude_code::ClaudeCodeAdapter;
+pub use codex::CodexAdapter;
 pub use hermes::{HermesAdapter, HermesSettings};
 pub use openclaw::OpenClawAdapter;
 
@@ -14,6 +16,7 @@ pub fn all_adapters() -> Vec<Box<dyn RuntimeAdapter>> {
         Box::new(OpenClawAdapter),
         Box::new(HermesAdapter),
         Box::new(ClaudeCodeAdapter),
+        Box::new(CodexAdapter),
     ]
 }
 
