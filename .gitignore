@@ -8,13 +8,13 @@
 *.dylib
 
 # Rust
-Cargo.lock
-# Keep Cargo.lock for binaries when we ship; ignore for now during bootstrap
+# Cargo.lock is committed for reproducible CI/release builds
 
 # Node / Tauri
 node_modules/
 .tauri/
 dist/
+desktop/.vite/
 
 # OS
 .DS_Store

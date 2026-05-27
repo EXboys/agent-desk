@@ -7,18 +7,50 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <main class="container">
-      <header>
-        <h1>Agent Desk</h1>
-        <p class="subtitle">Discover local AI agents and gateway wiring</p>
+    <main class="app">
+      <header class="hero">
+        <div class="hero-mark" aria-hidden="true">AD</div>
+        <div>
+          <p class="eyebrow">Agent Desk</p>
+          <h1>Local agent health</h1>
+          <p class="subtitle">Discover installed runtimes and gateway wiring on this machine.</p>
+        </div>
       </header>
 
-      <section class="panel">
-        <p id="status">Loading…</p>
-        <button id="refresh" type="button">Run doctor</button>
+      <section class="summary" id="summary" aria-live="polite">
+        <article class="summary-card">
+          <span class="summary-label">Installed</span>
+          <strong class="summary-value" id="installed-count">—</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Profile</span>
+          <strong class="summary-value" id="profile-status">—</strong>
+        </article>
+        <article class="summary-card">
+          <span class="summary-label">Last scan</span>
+          <strong class="summary-value summary-value-sm" id="last-scan">—</strong>
+        </article>
       </section>
 
-      <section id="runtimes" class="runtimes"></section>
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Doctor</h2>
+            <p id="status" class="status-text">Loading…</p>
+          </div>
+          <button id="refresh" type="button" class="btn-primary">
+            <span class="btn-label">Run doctor</span>
+            <span class="spinner" hidden aria-hidden="true"></span>
+          </button>
+        </div>
+      </section>
+
+      <section class="section-head">
+        <h2>Runtimes</h2>
+        <p id="runtime-count" class="section-meta">—</p>
+      </section>
+
+      <section id="runtimes" class="runtimes" aria-live="polite"></section>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>

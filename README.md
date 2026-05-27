@@ -91,7 +91,18 @@ cargo run -p agent-desk -- doctor
 cd desktop && npm install && npm run tauri dev
 ```
 
-See [docs/ROADMAP.md](docs/ROADMAP.md), [cli/README.md](cli/README.md), [desktop/README.md](desktop/README.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
+See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/install.md](docs/install.md), [cli/README.md](cli/README.md), [desktop/README.md](desktop/README.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Install
+
+Prebuilt CLI and desktop bundles are published to [GitHub Releases](https://github.com/EXboys/agent-desk/releases).
+
+```bash
+# Latest CLI (pick the pattern for your OS — see docs/install.md)
+gh release download --repo EXboys/agent-desk --pattern 'agent-desk-*-macos-arm64.tar.gz'
+tar -xzf agent-desk-*-macos-arm64.tar.gz && chmod +x agent-desk
+./agent-desk doctor
+```
 
 ## License
 
