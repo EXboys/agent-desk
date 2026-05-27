@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agent Desk</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Agent Desk</h1>
+        <p class="subtitle">Discover local AI agents and gateway wiring</p>
+      </header>
+
+      <section class="panel">
+        <p id="status">Loading…</p>
+        <button id="refresh" type="button">Run doctor</button>
+      </section>
+
+      <section id="runtimes" class="runtimes"></section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

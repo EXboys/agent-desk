@@ -2,9 +2,6 @@
 
 **Manage desktop AI agents on one machine** — discover what's installed, where configs live, and apply a company profile in one command.
 
-Built for teams using [Evotown](https://github.com/EXboys/evotown) as the control plane, but usable locally without Evotown for config inspection and `doctor` checks.
-
-[![Evotown](https://img.shields.io/badge/Evotown-official%20client-blue)](https://github.com/EXboys/evotown)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -20,36 +17,30 @@ Developers often run **several** local agents at once:
 | [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/settings.json` |
 | Codex CLI | provider env / config |
 
-Each tool has its own install path, gateway settings, and skills manifest. IT wants **one** place to answer:
+Each tool has its own install path, gateway settings, and skills manifest. Agent Desk gives you **one** place to answer:
 
 - What is installed on this laptop?
-- Are they pointed at the **company gateway** (`evk_` + Evotown)?
-- Can we apply or verify policy before agents run?
-
-**Agent Desk** is the local client for that job. [Evotown](https://github.com/EXboys/evotown) remains the server-side control plane (gateway, SkillHub, policies, runs, audit).
+- Where do configs live?
+- Are runtimes pointed at the right gateway?
+- Can we apply or verify a team profile before agents run?
 
 ```text
-  Employee laptop                         Company network
- ┌─────────────────────────┐            ┌──────────────────┐
- │ Agent Desk (this repo)  │  evk_/evi_ │ Evotown          │
- │ doctor · setup · sync   │ ─────────► │ gateway · market │
- └───────────┬─────────────┘            │ policies · runs  │
-             │                          └──────────────────┘
+  Your laptop
+ ┌─────────────────────────┐
+ │ Agent Desk              │
+ │ doctor · setup · sync   │
+ └───────────┬─────────────┘
+             │
    OpenClaw · Hermes · Claude Code · Codex
 ```
+
+Optional: teams can plug in an enterprise control plane (e.g. [Evotown](https://github.com/EXboys/evotown)) for gateway keys, SkillHub, and policy — see [docs/enterprise.md](docs/enterprise.md).
 
 ---
 
 ## Status
 
-🚧 **Early bootstrap** — repository and CLI layout only. Implementation tracks [docs/ROADMAP.md](docs/ROADMAP.md).
-
-Until the `agent-desk` binary ships, use the legacy script on the Evotown repo:
-
-```bash
-python3 /path/to/evotown/scripts/evotown-agent-setup.py check
-python3 /path/to/evotown/scripts/evotown-agent-setup.py sync
-```
+🚧 **Early MVP** — Rust workspace + `agent-desk doctor` + Tauri menubar shell. See [docs/ROADMAP.md](docs/ROADMAP.md) for remaining P0 items (`setup`, `sync`, `policy pull`).
 
 ---
 
@@ -59,10 +50,10 @@ python3 /path/to/evotown/scripts/evotown-agent-setup.py sync
 # Discover installed runtimes, config paths, gateway wiring
 agent-desk doctor
 
-# Apply company Evotown profile (URL + evk_ + per-runtime config)
-agent-desk setup --url https://evotown.company.internal --key evk_...
+# Apply company profile (URL + API key + per-runtime config)
+agent-desk setup --url https://gateway.company.internal --key ...
 
-# Pull private SkillHub bundle
+# Pull private skill bundle from control plane
 agent-desk sync
 
 # Cache policies from control plane
@@ -75,25 +66,32 @@ agent-desk policy pull
 
 | Project | Scope |
 |---------|--------|
-| **[Evotown](https://github.com/EXboys/evotown)** | Enterprise control plane (server) |
 | **[ClawPanel](https://github.com/qingchencloud/clawpanel)** | Rich GUI for OpenClaw + Hermes |
 | **[ClawPal](https://github.com/lay2dev/clawpal)** | OpenClaw desktop config companion |
 | **[agentmanager](https://github.com/kevinelliott/agentmanager)** | Install/update coding CLIs (Claude Code, Copilot, …) |
-| **Agent Desk** | **Cross-runtime local setup + Evotown profile** (not a replacement runtime) |
+| **Agent Desk** | **Cross-runtime local discovery + profile setup** (not a replacement runtime) |
 
 ---
 
 ## 中文
 
-**Agent Desk（本机 Agent 工作台）** 用于在同一台电脑上**发现**已安装的 OpenClaw、Hermes、Claude Code、Codex 等，**查看配置路径**，并**一键应用**企业 [Evotown](https://github.com/EXboys/evotown) 接入模板（网关 + SkillHub + 策略拉取）。
+**Agent Desk（本机 Agent 工作台）** 用于在同一台电脑上**发现**已安装的 OpenClaw、Hermes、Claude Code、Codex 等，**查看配置路径**，并**一键应用**团队网关/Skill 配置模板。
 
-Evotown 负责公司侧控制面；Agent Desk 负责员工笔记本电脑侧。详见 [docs/zh-CN/README.md](docs/zh-CN/README.md)。
+详见 [docs/zh-CN/README.md](docs/zh-CN/README.md)。企业控制面集成（可选）见 [docs/enterprise.md](docs/enterprise.md)。
 
 ---
 
 ## Development
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+```bash
+# CLI
+cargo run -p agent-desk -- doctor
+
+# Desktop menubar (requires Node.js)
+cd desktop && npm install && npm run tauri dev
+```
+
+See [docs/ROADMAP.md](docs/ROADMAP.md), [cli/README.md](cli/README.md), [desktop/README.md](desktop/README.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

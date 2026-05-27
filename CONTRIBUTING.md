@@ -3,15 +3,16 @@
 Agent Desk is in early bootstrap. Before opening large PRs, please open an issue describing:
 
 - Which runtime adapter (OpenClaw, Hermes, Claude Code, Codex, …)
-- Whether the change is local-only or requires Evotown API updates
+- Whether the change is local-only or requires a control-plane API
 
-## Layout (planned)
+## Layout
 
-- `cli/` — `agent-desk` binary (Rust or Go TBD)
-- `desktop/` — optional Tauri tray app (calls the same core)
-- `adapters/` — per-runtime discover / apply / doctor
-- `docs/` — user and Evotown integration docs
+- `crates/agent-desk-core/` — shared discovery, doctor, company profile logic
+- `cli/` — `agent-desk` binary (Rust)
+- `desktop/` — Tauri menubar app (Rust + TypeScript UI)
+- `adapters/` — adapter contract docs; implementations live in `agent-desk-core`
+- `docs/` — user docs; optional enterprise integration in `enterprise.md`
 
 ## Code of conduct
 
-Be respectful. Security issues: report privately to the Evotown maintainers if the issue affects production deployments.
+Be respectful. Security issues: please report privately via GitHub Security Advisories on this repository.

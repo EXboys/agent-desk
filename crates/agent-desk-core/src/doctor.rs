@@ -1,0 +1,64 @@
+use serde::{Deserialize, Serialize};
+
+use crate::adapter::RuntimeProfile;
+use crate::adapters::all_adapters;
+use crate::profile::agent_profile_path;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeDoctorResult {
+    pub id: String,
+    pub display_name: String,
+    pub installed: bool,
+    pub version: Option<String>,
+    pub binary_path: Option<String>,
+    pub config_paths: Vec<String>,
+    pub profile: RuntimeProfile,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DoctorReport {
+    pub profile_env_path: Option<String>,
+    pub profile_env_exists: bool,
+    pub runtimes: Vec<RuntimeDoctorResult>,
+}
+
+pub fn run_doctor() -> DoctorReport {
+    let profile_env_path = agent_profile_path();
+    let profile_env_exists = profile_env_path
+        .as_ref()
+        .map(|path| path.exists())
+        .unwrap_or(false);
+
+    let runtimes = all_adapters()
+        .iter()
+        .map(|adapter| {
+            let discovery = adapter.discover();
+            let profile = adapter.read_profile().unwrap_or(RuntimeProfile {
+                gateway_url: None,
+                key_source: None,
+            });
+
+            RuntimeDoctorResult {
+                id: adapter.id().to_string(),
+                display_name: adapter.display_name().to_string(),
+                installed: discovery.installed,
+                version: discovery.version,
+                binary_path: discovery
+                    .binary_path
+                    .map(|path| path.display().to_string()),
+                config_paths: adapter
+                    .config_paths()
+                    .into_iter()
+                    .map(|path| path.display().to_string())
+                    .collect(),
+                profile,
+            }
+        })
+        .collect();
+
+    DoctorReport {
+        profile_env_path: profile_env_path.map(|path| path.display().to_string()),
+        profile_env_exists,
+        runtimes,
+    }
+}

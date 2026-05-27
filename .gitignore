@@ -29,8 +29,9 @@ Thumbs.db
 .env
 .env.*
 *.pem
-evotown.agent.env
-!docs/examples/evotown.agent.env.example
+profile.env
+agent-desk/profile.env
+!docs/examples/profile.env.example
 
 # Test / cache
 .coverage
