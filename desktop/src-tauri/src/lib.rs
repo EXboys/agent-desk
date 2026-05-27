@@ -1,5 +1,6 @@
 use agent_desk_core::{
-    load_profiles, run_doctor, use_profile, DoctorReport, ProfilesDocument, UseProfileReport,
+    load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport, DoctorReport,
+    HermesAdapter, HermesSettings, ProfilesDocument, RuntimeModelPreset, UseProfileReport,
 };
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{Emitter, Manager};
@@ -35,6 +36,32 @@ fn list_profiles_command() -> ProfilesDocument {
 #[tauri::command]
 fn use_profile_command(name: String) -> Result<UseProfileReport, String> {
     use_profile(&name).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn get_hermes_model_command() -> Result<HermesSettings, String> {
+    HermesAdapter
+        .read_settings()
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn set_hermes_model_command(
+    provider: String,
+    model: String,
+    base_url: String,
+    api_key: Option<String>,
+) -> Result<ApplyReport, String> {
+    set_runtime_model(
+        "hermes",
+        RuntimeModelPreset {
+            provider,
+            model,
+            base_url,
+        },
+        api_key.as_deref(),
+    )
+    .map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -85,7 +112,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             run_doctor_command,
             list_profiles_command,
-            use_profile_command
+            use_profile_command,
+            get_hermes_model_command,
+            set_hermes_model_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

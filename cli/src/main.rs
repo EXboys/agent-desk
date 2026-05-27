@@ -24,7 +24,7 @@ enum Commands {
         #[command(subcommand)]
         action: ProfileAction,
     },
-    /// Show runtime-specific configuration
+    /// Show or update runtime-specific configuration
     Config {
         #[command(subcommand)]
         action: ConfigAction,
@@ -68,6 +68,17 @@ enum ConfigAction {
         #[arg(long)]
         json: bool,
     },
+    /// Write model settings to a runtime config file
+    Set {
+        /// Runtime id (e.g. hermes)
+        runtime: String,
+        #[arg(long)]
+        provider: Option<String>,
+        #[arg(long)]
+        model: Option<String>,
+        #[arg(long)]
+        base_url: Option<String>,
+    },
 }
 
 #[derive(Subcommand)]
@@ -86,6 +97,12 @@ fn main() -> Result<()> {
         },
         Commands::Config { action } => match action {
             ConfigAction::Show { runtime, json } => commands::config::show(&runtime, json)?,
+            ConfigAction::Set {
+                runtime,
+                provider,
+                model,
+                base_url,
+            } => commands::config::set(&runtime, provider, model, base_url)?,
         },
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,

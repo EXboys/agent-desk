@@ -4,7 +4,7 @@ mod openclaw;
 mod util;
 
 pub use claude_code::ClaudeCodeAdapter;
-pub use hermes::HermesAdapter;
+pub use hermes::{HermesAdapter, HermesSettings};
 pub use openclaw::OpenClawAdapter;
 
 use crate::adapter::RuntimeAdapter;

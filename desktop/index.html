@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -10,38 +10,44 @@
     <main class="app">
       <header class="hero">
         <div class="hero-mark" aria-hidden="true">AD</div>
-        <div>
-          <p class="eyebrow">Agent Desk</p>
-          <h1>Local agent health</h1>
-          <p class="subtitle">Discover installed runtimes and gateway wiring on this machine.</p>
+        <div class="hero-body">
+          <div class="hero-top">
+            <p class="eyebrow" data-i18n="app.eyebrow">Agent Desk</p>
+            <div class="lang-switch" role="group" aria-label="Language">
+              <button type="button" class="lang-btn" data-lang="zh" data-i18n="lang.zh">中文</button>
+              <button type="button" class="lang-btn" data-lang="en" data-i18n="lang.en">EN</button>
+            </div>
+          </div>
+          <h1 data-i18n="app.title">本机 Agent 状态</h1>
+          <p class="subtitle" data-i18n="app.subtitle">发现已安装的 Runtime，并查看网关与配置。</p>
         </div>
       </header>
 
       <section class="summary" id="summary" aria-live="polite">
         <article class="summary-card">
-          <span class="summary-label">Installed</span>
+          <span class="summary-label" data-i18n="summary.installed">已安装</span>
           <strong class="summary-value" id="installed-count">—</strong>
         </article>
         <article class="summary-card">
-          <span class="summary-label">Profile</span>
+          <span class="summary-label" data-i18n="summary.preset">预设</span>
           <strong class="summary-value" id="profile-status">—</strong>
         </article>
         <article class="summary-card">
-          <span class="summary-label">Last scan</span>
+          <span class="summary-label" data-i18n="summary.lastScan">上次扫描</span>
           <strong class="summary-value summary-value-sm" id="last-scan">—</strong>
         </article>
       </section>
 
       <section class="panel">
-        <div class="panel-head">
+        <div class="panel-head panel-head-stack">
           <div>
-            <h2>Presets</h2>
-            <p id="preset-status" class="status-text">Loading presets…</p>
+            <h2 data-i18n="presets.title">配置预设</h2>
+            <p id="preset-status" class="status-text" data-i18n="presets.loading">正在加载预设…</p>
           </div>
         </div>
         <div class="preset-row">
-          <select id="preset-select" aria-label="Profile preset"></select>
-          <button id="preset-apply" type="button" class="btn-secondary">Switch</button>
+          <select id="preset-select" aria-label="配置预设"></select>
+          <button id="preset-apply" type="button" class="btn-secondary" data-i18n="presets.switch">切换</button>
         </div>
         <p id="preset-hint" class="preset-hint"></p>
       </section>
@@ -49,18 +55,18 @@
       <section class="panel">
         <div class="panel-head">
           <div>
-            <h2>Doctor</h2>
-            <p id="status" class="status-text">Loading…</p>
+            <h2 data-i18n="doctor.title">诊断</h2>
+            <p id="status" class="status-text" data-i18n="doctor.loading">加载中…</p>
           </div>
           <button id="refresh" type="button" class="btn-primary">
-            <span class="btn-label">Run doctor</span>
+            <span class="btn-label" data-i18n="doctor.run">运行诊断</span>
             <span class="spinner" hidden aria-hidden="true"></span>
           </button>
         </div>
       </section>
 
       <section class="section-head">
-        <h2>Runtimes</h2>
+        <h2 data-i18n="runtimes.title">Runtime</h2>
         <p id="runtime-count" class="section-meta">—</p>
       </section>
 

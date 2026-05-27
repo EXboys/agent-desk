@@ -6,7 +6,7 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::{ApplyReport, RuntimeModelPreset};
-use crate::adapters::{adapter_by_id, all_adapters};
+use crate::adapters::{adapter_by_id, all_adapters, HermesAdapter};
 
 const PROFILES_FILE: &str = "profiles.yaml";
 
@@ -169,6 +169,28 @@ pub fn show_config(runtime_id: &str) -> Result<String> {
         .read_model()?
         .context(format!("{} does not expose model settings yet", runtime_id))?;
     Ok(serde_json::to_string_pretty(&model)?)
+}
+
+pub fn set_runtime_model(
+    runtime_id: &str,
+    preset: RuntimeModelPreset,
+    api_key: Option<&str>,
+) -> Result<ApplyReport> {
+    let adapter =
+        adapter_by_id(runtime_id).with_context(|| format!("unknown runtime '{runtime_id}'"))?;
+    if !adapter.discover().installed {
+        anyhow::bail!("{} is not installed", adapter.display_name());
+    }
+    if runtime_id == "hermes" {
+        return HermesAdapter.apply_settings(&preset, api_key);
+    }
+    if api_key.is_some() {
+        anyhow::bail!(
+            "{} does not support API key updates yet",
+            adapter.display_name()
+        );
+    }
+    adapter.apply_model(&preset)
 }
 
 pub fn ensure_profiles_dir() -> Result<PathBuf> {
