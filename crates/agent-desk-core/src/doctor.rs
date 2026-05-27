@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::adapter::RuntimeProfile;
 use crate::adapters::all_adapters;
+use crate::presets::load_profiles;
 use crate::profile::agent_profile_path;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,6 +20,7 @@ pub struct RuntimeDoctorResult {
 pub struct DoctorReport {
     pub profile_env_path: Option<String>,
     pub profile_env_exists: bool,
+    pub active_preset: Option<String>,
     pub runtimes: Vec<RuntimeDoctorResult>,
 }
 
@@ -54,9 +56,12 @@ pub fn run_doctor() -> DoctorReport {
         })
         .collect();
 
+    let active_preset = load_profiles().ok().and_then(|doc| doc.active);
+
     DoctorReport {
         profile_env_path: profile_env_path.map(|path| path.display().to_string()),
         profile_env_exists,
+        active_preset,
         runtimes,
     }
 }

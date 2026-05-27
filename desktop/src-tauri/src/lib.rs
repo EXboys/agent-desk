@@ -1,4 +1,6 @@
-use agent_desk_core::{run_doctor, DoctorReport};
+use agent_desk_core::{
+    load_profiles, run_doctor, use_profile, DoctorReport, ProfilesDocument, UseProfileReport,
+};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
@@ -20,6 +22,19 @@ fn publish_doctor_report(app: &tauri::AppHandle, report: &DoctorReport) {
 #[tauri::command]
 fn run_doctor_command() -> DoctorReport {
     run_doctor()
+}
+
+#[tauri::command]
+fn list_profiles_command() -> ProfilesDocument {
+    load_profiles().unwrap_or(ProfilesDocument {
+        active: None,
+        profiles: Default::default(),
+    })
+}
+
+#[tauri::command]
+fn use_profile_command(name: String) -> Result<UseProfileReport, String> {
+    use_profile(&name).map_err(|error| error.to_string())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -67,7 +82,11 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![run_doctor_command])
+        .invoke_handler(tauri::generate_handler![
+            run_doctor_command,
+            list_profiles_command,
+            use_profile_command
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -16,6 +16,8 @@ cargo run -p agent-desk -- doctor --json
 | Command | Status |
 |---------|--------|
 | `doctor` | Implemented (OpenClaw, Hermes, Claude Code discovery) |
+| `profile list/init/use` | Implemented (Hermes model switching) |
+| `config show` | Implemented (Hermes) |
 | `setup` | Stub |
 | `sync` | Stub |
 | `policy pull` | Stub |

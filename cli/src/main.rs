@@ -19,6 +19,16 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
+    /// List, create, and switch local model presets
+    Profile {
+        #[command(subcommand)]
+        action: ProfileAction,
+    },
+    /// Show runtime-specific configuration
+    Config {
+        #[command(subcommand)]
+        action: ConfigAction,
+    },
     /// Apply company profile (not yet implemented)
     Setup {
         #[arg(long)]
@@ -36,6 +46,31 @@ enum Commands {
 }
 
 #[derive(Subcommand)]
+enum ProfileAction {
+    /// Create example ~/.config/agent-desk/profiles.yaml
+    Init,
+    /// List configured presets
+    List,
+    /// Activate a preset and apply it to installed runtimes
+    Use {
+        /// Profile name (e.g. work, personal)
+        name: String,
+    },
+}
+
+#[derive(Subcommand)]
+enum ConfigAction {
+    /// Show current model settings for a runtime
+    Show {
+        /// Runtime id (e.g. hermes, openclaw, claude-code)
+        runtime: String,
+        /// Emit JSON
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+#[derive(Subcommand)]
 enum PolicyAction {
     Pull,
 }
@@ -44,6 +79,14 @@ fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
         Commands::Doctor { json } => commands::doctor::run(json)?,
+        Commands::Profile { action } => match action {
+            ProfileAction::Init => commands::profile::init()?,
+            ProfileAction::List => commands::profile::list()?,
+            ProfileAction::Use { name } => commands::profile::activate(&name)?,
+        },
+        Commands::Config { action } => match action {
+            ConfigAction::Show { runtime, json } => commands::config::show(&runtime, json)?,
+        },
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {

@@ -4,6 +4,17 @@
 
 The workspace includes **CLI crates** and a **Tauri desktop crate**. On Linux, the desktop crate needs GTK/WebKit system libraries; CI therefore splits checks by platform.
 
+### Model presets (Hermes)
+
+```bash
+agent-desk profile init          # create ~/.config/agent-desk/profiles.yaml
+agent-desk profile list
+agent-desk profile use work      # writes Hermes config + backup
+agent-desk config show hermes
+```
+
+Edit `~/.config/agent-desk/profiles.yaml` to add your own presets. Example: [profiles.example.yaml](../examples/profiles.example.yaml).
+
 ### Quick commands
 
 ```bash

@@ -17,7 +17,34 @@ interface RuntimeDoctorResult {
 interface DoctorReport {
   profile_env_path: string | null;
   profile_env_exists: boolean;
+  active_preset: string | null;
   runtimes: RuntimeDoctorResult[];
+}
+
+interface HermesProfilePreset {
+  provider: string;
+  model: string;
+  base_url: string;
+}
+
+interface ProfileEntry {
+  hermes?: HermesProfilePreset;
+}
+
+interface ProfilesDocument {
+  active: string | null;
+  profiles: Record<string, ProfileEntry>;
+}
+
+interface UseProfileReport {
+  profile: string;
+  applied: Array<{
+    runtime_id: string;
+    config_path: string;
+    backup_path: string | null;
+    restart_hint: string;
+  }>;
+  skipped: string[];
 }
 
 const statusEl = document.querySelector<HTMLElement>("#status")!;
@@ -28,6 +55,10 @@ const installedCountEl = document.querySelector<HTMLElement>("#installed-count")
 const profileStatusEl = document.querySelector<HTMLElement>("#profile-status")!;
 const lastScanEl = document.querySelector<HTMLElement>("#last-scan")!;
 const runtimeCountEl = document.querySelector<HTMLElement>("#runtime-count")!;
+const presetStatusEl = document.querySelector<HTMLElement>("#preset-status")!;
+const presetSelectEl = document.querySelector<HTMLSelectElement>("#preset-select")!;
+const presetApplyEl = document.querySelector<HTMLButtonElement>("#preset-apply")!;
+const presetHintEl = document.querySelector<HTMLElement>("#preset-hint")!;
 
 const RUNTIME_SHORT: Record<string, string> = {
   openclaw: "OC",
@@ -68,7 +99,7 @@ function renderReport(report: DoctorReport) {
   const total = report.runtimes.length;
 
   installedCountEl.textContent = `${installed}/${total}`;
-  profileStatusEl.textContent = report.profile_env_exists ? "Ready" : "Missing";
+  profileStatusEl.textContent = report.active_preset ?? "None";
   lastScanEl.textContent = formatTime(new Date());
   runtimeCountEl.textContent = `${total} tracked`;
 
@@ -118,6 +149,44 @@ function renderReport(report: DoctorReport) {
     .join("");
 }
 
+function renderProfiles(doc: ProfilesDocument) {
+  const names = Object.keys(doc.profiles);
+  presetSelectEl.innerHTML = "";
+
+  if (names.length === 0) {
+    presetStatusEl.textContent = "No presets yet";
+    presetApplyEl.disabled = true;
+    presetHintEl.textContent = "Run: agent-desk profile init";
+    return;
+  }
+
+  presetStatusEl.textContent = doc.active
+    ? `Active preset: ${doc.active}`
+    : "No active preset selected";
+
+  for (const name of names) {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    option.selected = doc.active === name;
+    presetSelectEl.appendChild(option);
+  }
+
+  presetApplyEl.disabled = false;
+  presetHintEl.textContent = "Switching updates Hermes config and creates a backup.";
+}
+
+async function loadProfiles() {
+  try {
+    const doc = await invoke<ProfilesDocument>("list_profiles_command");
+    renderProfiles(doc);
+  } catch (error) {
+    presetStatusEl.textContent = "Failed to load presets";
+    presetHintEl.textContent = String(error);
+    presetApplyEl.disabled = true;
+  }
+}
+
 function setLoading(loading: boolean) {
   refreshBtn.disabled = loading;
   refreshBtn.classList.toggle("is-loading", loading);
@@ -130,6 +199,7 @@ async function refresh() {
   try {
     const report = await invoke<DoctorReport>("run_doctor_command");
     renderReport(report);
+    await loadProfiles();
   } catch (error) {
     statusEl.textContent = `Doctor failed: ${String(error)}`;
     runtimesEl.innerHTML =
@@ -142,8 +212,35 @@ async function refresh() {
   }
 }
 
+async function applyPreset() {
+  const name = presetSelectEl.value;
+  if (!name) {
+    return;
+  }
+
+  presetApplyEl.disabled = true;
+  presetHintEl.textContent = `Applying ${name}…`;
+  try {
+    const report = await invoke<UseProfileReport>("use_profile_command", { name });
+    const applied = report.applied.map((item) => item.runtime_id).join(", ");
+    presetHintEl.textContent = applied
+      ? `Updated: ${applied}. Restart affected runtimes if needed.`
+      : report.skipped.join("; ");
+    await loadProfiles();
+    await refresh();
+  } catch (error) {
+    presetHintEl.textContent = String(error);
+  } finally {
+    presetApplyEl.disabled = false;
+  }
+}
+
 refreshBtn.addEventListener("click", () => {
   void refresh();
+});
+
+presetApplyEl.addEventListener("click", () => {
+  void applyPreset();
 });
 
 void listen<DoctorReport>("doctor-report", (event) => {

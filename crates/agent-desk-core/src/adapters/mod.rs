@@ -16,3 +16,9 @@ pub fn all_adapters() -> Vec<Box<dyn RuntimeAdapter>> {
         Box::new(ClaudeCodeAdapter),
     ]
 }
+
+pub fn adapter_by_id(id: &str) -> Option<Box<dyn RuntimeAdapter>> {
+    all_adapters()
+        .into_iter()
+        .find(|adapter| adapter.id() == id)
+}

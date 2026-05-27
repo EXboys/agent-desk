@@ -22,6 +22,12 @@ pub fn run(json: bool) -> Result<()> {
         println!("Company profile: unknown config directory");
     }
 
+    if let Some(active) = &report.active_preset {
+        println!("Active preset: {active}");
+    } else {
+        println!("Active preset: (none) — run `agent-desk profile init`");
+    }
+
     println!();
     for runtime in &report.runtimes {
         let status = if runtime.installed {
