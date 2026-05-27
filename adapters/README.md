@@ -7,14 +7,14 @@ Each adapter implements:
 | `discover()` | Is runtime installed? Version? Binary path? |
 | `config_paths()` | Default config file locations |
 | `read_profile()` | Current gateway URL / key source (redacted) |
-| `apply(profile)` | Merge Evotown company template |
+| `apply(profile)` | Merge company profile template |
 
 ## Planned
 
-| Adapter | Priority |
-|---------|----------|
-| `openclaw` | P0 |
-| `claude-code` | P0 |
-| `hermes` | P1 |
-| `codex` | P1 |
-| `skilllite` | P2 |
+| Adapter | Priority | Implementation |
+|---------|----------|----------------|
+| `openclaw` | P0 | `crates/agent-desk-core/src/adapters/openclaw.rs` |
+| `claude-code` | P0 | `crates/agent-desk-core/src/adapters/claude_code.rs` |
+| `hermes` | P0 | `crates/agent-desk-core/src/adapters/hermes.rs` |
+| `codex` | P1 | — |
+| `skilllite` | P2 | — |

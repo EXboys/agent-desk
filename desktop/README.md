@@ -1,9 +1,32 @@
-# Desktop (optional, P1)
+# Desktop (Tauri menubar)
 
-Planned **Tauri** menubar app that wraps the same core as the CLI:
+**Tauri 2** menubar companion that calls the same Rust core as the CLI (`agent-desk-core`).
 
-- Connection status to Evotown
-- Re-run `doctor` / `sync`
-- Open company console in browser
+## Features (MVP)
 
-No separate business logic in the UI layer.
+- System tray with **Show**, **Run doctor**, **Quit**
+- Small window listing discovered runtimes and company profile status
+- No separate business logic in the TypeScript UI layer
+
+## Develop
+
+```bash
+cd desktop
+npm install
+npm run tauri dev
+```
+
+## Build
+
+```bash
+cd desktop
+npm run tauri build
+```
+
+## CLI-only workflow
+
+You can use Agent Desk without the desktop app:
+
+```bash
+cargo run -p agent-desk -- doctor
+```

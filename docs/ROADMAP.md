@@ -2,24 +2,23 @@
 
 ## P0 — CLI MVP
 
-- [ ] `agent-desk doctor` — detect OpenClaw, Hermes, Claude Code, Codex; print config paths and gateway wiring
-- [ ] `agent-desk setup` — write `~/.config/evotown/evotown.agent.env` + merge runtime configs
-- [ ] `agent-desk sync` — SkillHub bundle sync (port from `evotown-agent-setup.py`)
-- [ ] `agent-desk policy pull` — cache `GET /api/v1/policies`
-- [ ] Evotown profile: `--url` + `--key evk_`
+- [x] `agent-desk doctor` — detect OpenClaw, Hermes, Claude Code (Codex pending); print config paths and gateway wiring
+- [ ] `agent-desk setup` — write `~/.config/agent-desk/profile.env` + merge runtime configs
+- [ ] `agent-desk sync` — skill bundle sync from control plane
+- [ ] `agent-desk policy pull` — cache policies from control plane
+- [ ] Company profile: `--url` + API key
 
 ## P1 — Desktop tray
 
-- [ ] Tauri menubar: connected / not connected, re-sync, open Evotown console
-- [ ] Keychain storage for `evk_` (optional)
+- [x] Tauri menubar shell: tray menu, left-click to show window, run doctor
+- [ ] Keychain storage for API keys (optional)
 
 ## P2 — Adapters & policy
 
-- [ ] Local policy evaluate before ingest (shared with Evotown policy engine)
+- [ ] Local policy evaluate before ingest
 - [ ] OpenClaw plugin install helper
 - [ ] SkillLite adapter (optional runtime)
 
-## Related repos
+## Optional integrations
 
-- [evotown](https://github.com/EXboys/evotown) — control plane
-- Legacy script: `evotown/scripts/evotown-agent-setup.py` (to be superseded)
+- [Evotown](https://github.com/EXboys/evotown) — see [enterprise.md](enterprise.md)
