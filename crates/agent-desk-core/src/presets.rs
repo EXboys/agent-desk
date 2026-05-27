@@ -9,6 +9,8 @@ use crate::adapter::{ApplyReport, RuntimeModelPreset};
 use crate::adapters::{adapter_by_id, all_adapters, HermesAdapter};
 
 const PROFILES_FILE: &str = "profiles.yaml";
+const OLLAMA_DEFAULT_BASE_URL: &str = "http://127.0.0.1:11434/v1";
+const OLLAMA_DEFAULT_MODEL: &str = "llama3.2";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ProfilesDocument {
@@ -41,6 +43,29 @@ impl From<HermesProfilePreset> for RuntimeModelPreset {
     }
 }
 
+pub fn default_local_hermes_preset() -> HermesProfilePreset {
+    HermesProfilePreset {
+        provider: "ollama".to_string(),
+        model: OLLAMA_DEFAULT_MODEL.to_string(),
+        base_url: OLLAMA_DEFAULT_BASE_URL.to_string(),
+    }
+}
+
+/// Adds built-in presets that may be missing from older profiles files.
+pub fn merge_builtin_profiles(doc: &mut ProfilesDocument) -> bool {
+    let mut changed = false;
+    if !doc.profiles.contains_key("local") {
+        doc.profiles.insert(
+            "local".to_string(),
+            ProfileEntry {
+                hermes: Some(default_local_hermes_preset()),
+            },
+        );
+        changed = true;
+    }
+    changed
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UseProfileReport {
     pub profile: String,
@@ -64,8 +89,11 @@ pub fn load_profiles() -> Result<ProfilesDocument> {
     }
 
     let raw = fs::read_to_string(&path)?;
-    let doc: ProfilesDocument = serde_yaml::from_str(&raw)
+    let mut doc: ProfilesDocument = serde_yaml::from_str(&raw)
         .with_context(|| format!("failed to parse {}", path.display()))?;
+    if merge_builtin_profiles(&mut doc) {
+        save_profiles(&doc)?;
+    }
     Ok(doc)
 }
 
@@ -109,9 +137,15 @@ pub fn init_example_profiles() -> Result<PathBuf> {
             }),
         },
     );
+    profiles.insert(
+        "local".to_string(),
+        ProfileEntry {
+            hermes: Some(default_local_hermes_preset()),
+        },
+    );
 
     let doc = ProfilesDocument {
-        active: Some("work".to_string()),
+        active: Some("local".to_string()),
         profiles,
     };
     save_profiles(&doc)
@@ -214,6 +248,28 @@ mod tests {
         let raw = include_str!("../../../docs/examples/profiles.example.yaml");
         let doc: ProfilesDocument = serde_yaml::from_str(raw).expect("parse example");
         assert!(doc.profiles.contains_key("work"));
-        assert_eq!(doc.active.as_deref(), Some("work"));
+        assert!(doc.profiles.contains_key("local"));
+        assert_eq!(doc.active.as_deref(), Some("local"));
+    }
+
+    #[test]
+    fn merge_builtin_profiles_adds_local() {
+        let mut doc = ProfilesDocument {
+            active: Some("work".to_string()),
+            profiles: BTreeMap::from([(
+                "work".to_string(),
+                ProfileEntry {
+                    hermes: Some(HermesProfilePreset {
+                        provider: "deepseek".to_string(),
+                        model: "deepseek-v4-flash".to_string(),
+                        base_url: "https://api.deepseek.com/v1".to_string(),
+                    }),
+                },
+            )]),
+        };
+        assert!(merge_builtin_profiles(&mut doc));
+        let local = doc.profiles.get("local").unwrap().hermes.as_ref().unwrap();
+        assert_eq!(local.provider, "ollama");
+        assert_eq!(local.base_url, OLLAMA_DEFAULT_BASE_URL);
     }
 }

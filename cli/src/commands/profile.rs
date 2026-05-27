@@ -30,7 +30,13 @@ pub fn list() -> Result<()> {
         let hermes = entry
             .hermes
             .as_ref()
-            .map(|h| format!("hermes: {} / {}", h.provider, h.model))
+            .map(|h| {
+                if h.provider == "ollama" {
+                    format!("hermes: {} / {} @ {}", h.provider, h.model, h.base_url)
+                } else {
+                    format!("hermes: {} / {}", h.provider, h.model)
+                }
+            })
             .unwrap_or_else(|| "hermes: (not set)".to_string());
         println!("{marker} {name} — {hermes}");
     }
@@ -43,6 +49,7 @@ pub fn init() -> Result<()> {
     println!("Created example profiles at {}", path.display());
     println!("\nTry:");
     println!("  agent-desk profile list");
+    println!("  agent-desk profile use local    # Ollama @ 127.0.0.1:11434, no API key");
     println!("  agent-desk profile use work");
     Ok(())
 }

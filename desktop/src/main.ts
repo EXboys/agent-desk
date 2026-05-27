@@ -59,6 +59,7 @@ interface UseProfileReport {
 
 const statusEl = document.querySelector<HTMLElement>("#status")!;
 const runtimesEl = document.querySelector<HTMLElement>("#runtimes")!;
+const runtimeTabsEl = document.querySelector<HTMLElement>("#runtime-tabs")!;
 const refreshBtn = document.querySelector<HTMLButtonElement>("#refresh")!;
 const spinnerEl = refreshBtn.querySelector<HTMLElement>(".spinner")!;
 const installedCountEl = document.querySelector<HTMLElement>("#installed-count")!;
@@ -66,10 +67,15 @@ const profileStatusEl = document.querySelector<HTMLElement>("#profile-status")!;
 const lastScanEl = document.querySelector<HTMLElement>("#last-scan")!;
 const runtimeCountEl = document.querySelector<HTMLElement>("#runtime-count")!;
 const presetStatusEl = document.querySelector<HTMLElement>("#preset-status")!;
-const presetSelectEl = document.querySelector<HTMLSelectElement>("#preset-select")!;
 const presetApplyEl = document.querySelector<HTMLButtonElement>("#preset-apply")!;
 const presetHintEl = document.querySelector<HTMLElement>("#preset-hint")!;
+const presetPickerEl = document.querySelector<HTMLElement>("#preset-picker")!;
+const presetTriggerEl = document.querySelector<HTMLButtonElement>("#preset-trigger")!;
+const presetTriggerLabelEl = document.querySelector<HTMLElement>("#preset-trigger-label")!;
+const presetMenuEl = document.querySelector<HTMLElement>("#preset-menu")!;
 const langSwitchEl = document.querySelector<HTMLElement>(".lang-switch")!;
+const healthPillEl = document.querySelector<HTMLElement>("#health-pill")!;
+const healthLabelEl = document.querySelector<HTMLElement>("#health-label")!;
 
 const RUNTIME_SHORT: Record<string, string> = {
   openclaw: "OC",
@@ -81,6 +87,9 @@ let lastReport: DoctorReport | null = null;
 let lastProfiles: ProfilesDocument | null = null;
 let hermesModel: HermesSettings | null = null;
 let hermesEditing = false;
+let activeRuntimeId: string | null = null;
+let selectedPresetName = "";
+let presetMenuOpen = false;
 
 function escapeHtml(value: string): string {
   return value
@@ -108,6 +117,41 @@ function runtimeClass(id: string): string {
 
 function runtimeInitials(id: string, displayName: string): string {
   return RUNTIME_SHORT[id] ?? displayName.slice(0, 2).toUpperCase();
+}
+
+function setStatusBanner(
+  kind: "ok" | "warn" | "error" | "neutral",
+  message: string,
+): void {
+  statusEl.textContent = message;
+  statusEl.classList.remove("is-ok", "is-warn", "is-error");
+  if (kind !== "neutral") {
+    statusEl.classList.add(`is-${kind}`);
+  }
+}
+
+function updateHealthStrip(installed: number, total: number, scanning = false): void {
+  healthPillEl.classList.remove("is-good", "is-partial", "is-bad", "is-scanning");
+  if (scanning) {
+    healthPillEl.classList.add("is-scanning");
+    healthLabelEl.textContent = t("health.scanning");
+    return;
+  }
+  if (total === 0 || installed === 0) {
+    healthPillEl.classList.add("is-bad");
+    healthLabelEl.textContent = t("health.bad");
+    return;
+  }
+  if (installed === total) {
+    healthPillEl.classList.add("is-good");
+    healthLabelEl.textContent = t("health.good");
+    return;
+  }
+  healthPillEl.classList.add("is-partial");
+  healthLabelEl.textContent = t("health.partial", {
+    installed: String(installed),
+    total: String(total),
+  });
 }
 
 function metaRow(labelKey: Parameters<typeof t>[0], value: string): string {
@@ -208,14 +252,8 @@ function renderHermesCard(runtime: RuntimeDoctorResult): string {
 
   return `
     <article class="runtime hermes ${hermesEditing ? "is-editing" : ""}" data-runtime="hermes">
-      <div class="runtime-head">
-        <div class="runtime-title">
-          <div class="runtime-icon">${runtimeInitials(runtime.id, runtime.display_name)}</div>
-          <div>
-            <h3>${runtime.display_name}</h3>
-            <p class="runtime-id">${runtime.id}</p>
-          </div>
-        </div>
+      <div class="runtime-head runtime-head-compact">
+        <p class="runtime-tab-title">${runtime.display_name}</p>
         <div class="runtime-actions">
           ${editButton}
           <p class="badge ok">${t("runtime.installed")}</p>
@@ -245,19 +283,45 @@ function renderRuntimeCard(runtime: RuntimeDoctorResult): string {
 
   return `
     <article class="runtime ${runtimeClass(runtime.id)}" data-runtime="${runtime.id}">
-      <div class="runtime-head">
-        <div class="runtime-title">
-          <div class="runtime-icon">${runtimeInitials(runtime.id, runtime.display_name)}</div>
-          <div>
-            <h3>${runtime.display_name}</h3>
-            <p class="runtime-id">${runtime.id}</p>
-          </div>
-        </div>
+      <div class="runtime-head runtime-head-compact">
+        <p class="runtime-tab-title">${runtime.display_name}</p>
         <p class="badge ${badgeClass}">${state}</p>
       </div>
       ${rows ? `<div class="meta-grid">${rows}</div>` : ""}
     </article>
   `;
+}
+
+function resolveActiveRuntimeId(runtimes: RuntimeDoctorResult[]): string | null {
+  if (runtimes.length === 0) {
+    return null;
+  }
+  if (activeRuntimeId && runtimes.some((runtime) => runtime.id === activeRuntimeId)) {
+    return activeRuntimeId;
+  }
+  return runtimes.find((runtime) => runtime.installed)?.id ?? runtimes[0].id;
+}
+
+function renderRuntimeTabs(runtimes: RuntimeDoctorResult[], selectedId: string): string {
+  return runtimes
+    .map((runtime) => {
+      const active = runtime.id === selectedId;
+      const dotClass = runtime.installed ? "ok" : "muted";
+      return `
+        <button
+          type="button"
+          class="runtime-tab ${runtimeClass(runtime.id)} ${active ? "is-active" : ""}"
+          role="tab"
+          aria-selected="${active}"
+          data-runtime-tab="${runtime.id}"
+        >
+          <span class="runtime-tab-icon">${runtimeInitials(runtime.id, runtime.display_name)}</span>
+          <span class="runtime-tab-label">${escapeHtml(runtime.display_name)}</span>
+          <span class="runtime-tab-dot ${dotClass}" aria-hidden="true"></span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 async function loadHermesModel(): Promise<void> {
@@ -276,11 +340,13 @@ async function renderReport(report: DoctorReport) {
   installedCountEl.textContent = `${installed}/${total}`;
   profileStatusEl.textContent = report.active_preset ?? t("status.none");
   lastScanEl.textContent = formatTime(new Date());
-  runtimeCountEl.textContent = t("runtimes.tracked", { count: String(total) });
+  runtimeCountEl.textContent = `${installed}/${total}`;
+  updateHealthStrip(installed, total);
 
-  statusEl.textContent = report.profile_env_exists
-    ? t("doctor.companyOk")
-    : t("doctor.companyMissing");
+  setStatusBanner(
+    report.profile_env_exists ? "ok" : "warn",
+    report.profile_env_exists ? t("doctor.companyOk") : t("doctor.companyMissing"),
+  );
 
   if (report.runtimes.some((runtime) => runtime.id === "hermes" && runtime.installed)) {
     await loadHermesModel();
@@ -290,22 +356,125 @@ async function renderReport(report: DoctorReport) {
   }
 
   if (report.runtimes.length === 0) {
+    activeRuntimeId = null;
+    runtimeTabsEl.innerHTML = "";
     runtimesEl.innerHTML = `<div class="empty-state">${t("runtimes.empty")}</div>`;
     return;
   }
 
-  runtimesEl.innerHTML = report.runtimes.map(renderRuntimeCard).join("");
+  const selectedId = resolveActiveRuntimeId(report.runtimes)!;
+  activeRuntimeId = selectedId;
+  runtimeTabsEl.innerHTML = renderRuntimeTabs(report.runtimes, selectedId);
+
+  const activeRuntime = report.runtimes.find((runtime) => runtime.id === selectedId);
+  runtimesEl.innerHTML = activeRuntime ? renderRuntimeCard(activeRuntime) : "";
+}
+
+function setPresetTriggerLabel(name: string | null) {
+  presetTriggerLabelEl.textContent = name ?? t("presets.noActive");
+}
+
+function closePresetMenu() {
+  presetMenuOpen = false;
+  presetMenuEl.hidden = true;
+  presetTriggerEl.setAttribute("aria-expanded", "false");
+  presetPickerEl.classList.remove("is-open");
+}
+
+function openPresetMenu() {
+  if (presetTriggerEl.disabled) {
+    return;
+  }
+  presetMenuOpen = true;
+  presetMenuEl.hidden = false;
+  presetTriggerEl.setAttribute("aria-expanded", "true");
+  presetPickerEl.classList.add("is-open");
+}
+
+function togglePresetMenu() {
+  if (presetMenuOpen) {
+    closePresetMenu();
+  } else {
+    openPresetMenu();
+  }
+}
+
+function presetMeta(entry: ProfileEntry | undefined): string {
+  const hermes = entry?.hermes;
+  if (!hermes) {
+    return "";
+  }
+  if (hermes.provider === "ollama") {
+    return t("presets.localMeta", { model: hermes.model });
+  }
+  return `${hermes.provider} · ${hermes.model}`;
+}
+
+function sortPresetNames(names: string[]): string[] {
+  return [...names].sort((left, right) => {
+    if (left === "local") {
+      return -1;
+    }
+    if (right === "local") {
+      return 1;
+    }
+    return left.localeCompare(right);
+  });
+}
+
+function renderPresetOptions(
+  names: string[],
+  active: string | null,
+  profiles: Record<string, ProfileEntry>,
+) {
+  if (names.length === 0) {
+    presetMenuEl.innerHTML = "";
+    selectedPresetName = "";
+    setPresetTriggerLabel(null);
+    presetTriggerEl.disabled = true;
+    closePresetMenu();
+    return;
+  }
+
+  selectedPresetName =
+    selectedPresetName && names.includes(selectedPresetName)
+      ? selectedPresetName
+      : (active ?? names[0]);
+  setPresetTriggerLabel(selectedPresetName);
+  presetTriggerEl.disabled = false;
+
+  presetMenuEl.innerHTML = names
+    .map((name) => {
+      const activeOption = name === selectedPresetName;
+      const meta = presetMeta(profiles[name]);
+      return `
+        <button
+          type="button"
+          class="picker-option ${activeOption ? "is-active" : ""}"
+          role="option"
+          aria-selected="${activeOption}"
+          data-preset="${escapeHtml(name)}"
+        >
+          <span class="picker-option-body">
+            <span class="picker-option-label">${escapeHtml(name)}</span>
+            ${meta ? `<span class="picker-option-meta">${escapeHtml(meta)}</span>` : ""}
+          </span>
+          <span class="picker-option-check" aria-hidden="true">✓</span>
+        </button>
+      `;
+    })
+    .join("");
 }
 
 function renderProfiles(doc: ProfilesDocument) {
   lastProfiles = doc;
-  const names = Object.keys(doc.profiles);
-  presetSelectEl.innerHTML = "";
+  const names = sortPresetNames(Object.keys(doc.profiles));
 
   if (names.length === 0) {
     presetStatusEl.textContent = t("presets.none");
     presetApplyEl.disabled = true;
     presetHintEl.textContent = t("presets.noneHint");
+    renderPresetOptions([], null, doc.profiles);
     return;
   }
 
@@ -313,14 +482,7 @@ function renderProfiles(doc: ProfilesDocument) {
     ? t("presets.active", { name: doc.active })
     : t("presets.noActive");
 
-  for (const name of names) {
-    const option = document.createElement("option");
-    option.value = name;
-    option.textContent = name;
-    option.selected = doc.active === name;
-    presetSelectEl.appendChild(option);
-  }
-
+  renderPresetOptions(names, doc.active, doc.profiles);
   presetApplyEl.disabled = false;
   presetHintEl.textContent = t("presets.switchHint");
 }
@@ -341,17 +503,27 @@ function setLoading(loading: boolean) {
   refreshBtn.classList.toggle("is-loading", loading);
   spinnerEl.hidden = !loading;
   runtimesEl.classList.toggle("is-loading", loading);
+  runtimeTabsEl.classList.toggle("is-loading", loading);
+
+  if (loading) {
+    const installed = lastReport?.runtimes.filter((runtime) => runtime.installed).length ?? 0;
+    const total = lastReport?.runtimes.length ?? 0;
+    updateHealthStrip(installed, total, true);
+    setStatusBanner("neutral", t("doctor.running"));
+  }
 }
 
 async function refresh() {
   setLoading(true);
-  statusEl.textContent = t("doctor.running");
   try {
     const report = await invoke<DoctorReport>("run_doctor_command");
     await renderReport(report);
   } catch (error) {
-    statusEl.textContent = t("doctor.failed", { error: String(error) });
+    setStatusBanner("error", t("doctor.failed", { error: String(error) }));
+    updateHealthStrip(0, 0);
     runtimesEl.innerHTML = `<div class="empty-state">${t("doctor.empty")}</div>`;
+    runtimeTabsEl.innerHTML = "";
+    activeRuntimeId = null;
     installedCountEl.textContent = "—";
     profileStatusEl.textContent = t("status.error");
     runtimeCountEl.textContent = "—";
@@ -361,10 +533,12 @@ async function refresh() {
 }
 
 async function applyPreset() {
-  const name = presetSelectEl.value;
+  const name = selectedPresetName;
   if (!name) {
     return;
   }
+
+  closePresetMenu();
 
   presetApplyEl.disabled = true;
   presetHintEl.textContent = t("presets.applying", { name });
@@ -457,10 +631,24 @@ async function switchLocale(next: Locale) {
   if (lastReport) {
     await renderReport(lastReport);
   } else {
-    statusEl.textContent = t("doctor.loading");
+    setStatusBanner("neutral", t("doctor.loading"));
     presetStatusEl.textContent = t("presets.loading");
+    healthLabelEl.textContent = t("health.ready");
   }
 }
+
+runtimeTabsEl.addEventListener("click", (event) => {
+  const tab = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-runtime-tab]");
+  const runtimeId = tab?.dataset.runtimeTab;
+  if (!runtimeId || runtimeId === activeRuntimeId) {
+    return;
+  }
+  activeRuntimeId = runtimeId;
+  hermesEditing = false;
+  if (lastReport) {
+    void renderReport(lastReport);
+  }
+});
 
 runtimesEl.addEventListener("click", (event) => {
   const target = event.target as HTMLElement;
@@ -476,6 +664,7 @@ runtimesEl.addEventListener("click", (event) => {
 
   if (action === "edit-hermes") {
     hermesEditing = true;
+    activeRuntimeId = "hermes";
     if (lastReport) {
       void renderReport(lastReport);
     }
@@ -509,6 +698,41 @@ refreshBtn.addEventListener("click", () => {
 
 presetApplyEl.addEventListener("click", () => {
   void applyPreset();
+});
+
+presetTriggerEl.addEventListener("click", () => {
+  togglePresetMenu();
+});
+
+presetMenuEl.addEventListener("click", (event) => {
+  const option = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-preset]");
+  const name = option?.dataset.preset;
+  if (!name || !lastProfiles) {
+    return;
+  }
+  selectedPresetName = name;
+  renderPresetOptions(
+    sortPresetNames(Object.keys(lastProfiles.profiles)),
+    lastProfiles.active,
+    lastProfiles.profiles,
+  );
+  closePresetMenu();
+});
+
+document.addEventListener("click", (event) => {
+  if (!presetMenuOpen) {
+    return;
+  }
+  const target = event.target as Node;
+  if (!presetPickerEl.contains(target)) {
+    closePresetMenu();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closePresetMenu();
+  }
 });
 
 void listen<DoctorReport>("doctor-report", (event) => {

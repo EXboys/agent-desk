@@ -2,7 +2,7 @@
 
 **Manage desktop AI agents on one machine** — discover what's installed, where configs live, and apply a company profile in one command.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[License: MIT](LICENSE)
 
 ---
 
@@ -10,12 +10,14 @@
 
 Developers often run **several** local agents at once:
 
-| Runtime | Typical config |
-|---------|----------------|
-| [OpenClaw](https://github.com/openclaw/openclaw) | `~/.openclaw/openclaw.json` |
-| [Hermes Agent](https://github.com/nousresearch/hermes-agent) | `~/.hermes/config.yaml` |
-| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/settings.json` |
-| Codex CLI | provider env / config |
+
+| Runtime                                                       | Typical config              |
+| ------------------------------------------------------------- | --------------------------- |
+| [OpenClaw](https://github.com/openclaw/openclaw)              | `~/.openclaw/openclaw.json` |
+| [Hermes Agent](https://github.com/nousresearch/hermes-agent)  | `~/.hermes/config.yaml`     |
+| [Claude Code](https://docs.anthropic.com/en/docs/claude-code) | `~/.claude/settings.json`   |
+| Codex CLI                                                     | provider env / config       |
+
 
 Each tool has its own install path, gateway settings, and skills manifest. Agent Desk gives you **one** place to answer:
 
@@ -64,12 +66,13 @@ agent-desk policy pull
 
 ## Relationship to other tools
 
-| Project | Scope |
-|---------|--------|
-| **[ClawPanel](https://github.com/qingchencloud/clawpanel)** | Rich GUI for OpenClaw + Hermes |
-| **[ClawPal](https://github.com/lay2dev/clawpal)** | OpenClaw desktop config companion |
-| **[agentmanager](https://github.com/kevinelliott/agentmanager)** | Install/update coding CLIs (Claude Code, Copilot, …) |
-| **Agent Desk** | **Cross-runtime local discovery + profile setup** (not a replacement runtime) |
+
+| Project                                                     | Scope                                                                         |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| **[ClawPanel](https://github.com/qingchencloud/clawpanel)** | Rich GUI for OpenClaw + Hermes                                                |
+| **[ClawPal](https://github.com/lay2dev/clawpal)**           | OpenClaw desktop config companion                                             |
+| **Agent Desk**                                              | **Cross-runtime local discovery + profile setup** (not a replacement runtime) |
+
 
 ---
 

@@ -6,7 +6,13 @@ const messages = {
   en: {
     "app.eyebrow": "Agent Desk",
     "app.title": "Local agent health",
-    "app.subtitle": "Discover installed runtimes and gateway wiring on this machine.",
+    "app.subtitle": "Desktop agent diagnostics",
+    "app.footer": "Local runtime discovery · config · health checks",
+    "health.ready": "Ready",
+    "health.scanning": "Scanning…",
+    "health.good": "All runtimes healthy",
+    "health.partial": "{installed}/{total} runtimes installed",
+    "health.bad": "No runtimes installed",
     "summary.installed": "Installed",
     "summary.preset": "Preset",
     "summary.lastScan": "Last scan",
@@ -17,13 +23,14 @@ const messages = {
     "presets.noneHint": "Run: agent-desk profile init",
     "presets.active": "Active preset: {name}",
     "presets.noActive": "No active preset selected",
-    "presets.switchHint": "Applies Hermes config and creates a backup.",
+    "presets.switchHint": "Applies Hermes config and creates a backup. Local uses Ollama with no API key.",
+    "presets.localMeta": "ollama · {model} · no API key",
     "presets.failed": "Failed to load presets",
     "presets.applying": "Applying {name}…",
     "presets.updated": "Updated: {list}. Restart affected runtimes if needed.",
     "doctor.title": "Doctor",
     "doctor.loading": "Loading…",
-    "doctor.run": "Run doctor",
+    "doctor.run": "Scan",
     "doctor.running": "Running doctor…",
     "doctor.companyOk": "Company profile detected. Runtimes scanned successfully.",
     "doctor.companyMissing": "No company profile yet. Local discovery still works.",
@@ -59,7 +66,13 @@ const messages = {
   zh: {
     "app.eyebrow": "Agent Desk",
     "app.title": "本机 Agent 状态",
-    "app.subtitle": "发现已安装的 Runtime，并查看网关与配置。",
+    "app.subtitle": "桌面 Agent 诊断工具",
+    "app.footer": "本机 Runtime 发现 · 配置 · 健康检查",
+    "health.ready": "就绪",
+    "health.scanning": "扫描中…",
+    "health.good": "Runtime 状态正常",
+    "health.partial": "已安装 {installed}/{total}",
+    "health.bad": "暂无已安装 Runtime",
     "summary.installed": "已安装",
     "summary.preset": "预设",
     "summary.lastScan": "上次扫描",
@@ -70,13 +83,14 @@ const messages = {
     "presets.noneHint": "运行：agent-desk profile init",
     "presets.active": "当前预设：{name}",
     "presets.noActive": "未选择预设",
-    "presets.switchHint": "会更新 Hermes 配置并自动备份。",
+    "presets.switchHint": "会更新 Hermes 配置并自动备份。local 走 Ollama，无需 API Key。",
+    "presets.localMeta": "ollama · {model} · 无需 API Key",
     "presets.failed": "加载预设失败",
     "presets.applying": "正在应用 {name}…",
     "presets.updated": "已更新：{list}。请重启相关 Runtime。",
     "doctor.title": "诊断",
     "doctor.loading": "加载中…",
-    "doctor.run": "运行诊断",
+    "doctor.run": "扫描",
     "doctor.running": "正在诊断…",
     "doctor.companyOk": "已检测到企业配置，Runtime 扫描完成。",
     "doctor.companyMissing": "尚无企业配置，本机发现功能仍可用。",
@@ -153,9 +167,9 @@ export function applyStaticI18n(root: ParentNode = document): void {
     element.textContent = t(key);
   });
 
-  const presetSelect = document.querySelector<HTMLSelectElement>("#preset-select");
-  if (presetSelect) {
-    presetSelect.setAttribute(
+  const presetTrigger = document.querySelector<HTMLButtonElement>("#preset-trigger");
+  if (presetTrigger) {
+    presetTrigger.setAttribute(
       "aria-label",
       locale === "zh" ? "配置预设" : "Profile preset",
     );

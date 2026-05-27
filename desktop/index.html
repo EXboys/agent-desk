@@ -7,70 +7,104 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <main class="app">
-      <header class="hero">
-        <div class="hero-mark" aria-hidden="true">AD</div>
-        <div class="hero-body">
-          <div class="hero-top">
-            <p class="eyebrow" data-i18n="app.eyebrow">Agent Desk</p>
-            <div class="lang-switch" role="group" aria-label="Language">
-              <button type="button" class="lang-btn" data-lang="zh" data-i18n="lang.zh">中文</button>
-              <button type="button" class="lang-btn" data-lang="en" data-i18n="lang.en">EN</button>
-            </div>
+    <main class="widget">
+      <header class="widget-toolbar">
+        <div class="brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 3L4 7.5V16.5L12 21L20 16.5V7.5L12 3Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+              <path d="M12 12L4 7.5M12 12L20 7.5M12 12V21" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+            </svg>
           </div>
-          <h1 data-i18n="app.title">本机 Agent 状态</h1>
-          <p class="subtitle" data-i18n="app.subtitle">发现已安装的 Runtime，并查看网关与配置。</p>
-        </div>
-      </header>
-
-      <section class="summary" id="summary" aria-live="polite">
-        <article class="summary-card">
-          <span class="summary-label" data-i18n="summary.installed">已安装</span>
-          <strong class="summary-value" id="installed-count">—</strong>
-        </article>
-        <article class="summary-card">
-          <span class="summary-label" data-i18n="summary.preset">预设</span>
-          <strong class="summary-value" id="profile-status">—</strong>
-        </article>
-        <article class="summary-card">
-          <span class="summary-label" data-i18n="summary.lastScan">上次扫描</span>
-          <strong class="summary-value summary-value-sm" id="last-scan">—</strong>
-        </article>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head panel-head-stack">
-          <div>
-            <h2 data-i18n="presets.title">配置预设</h2>
-            <p id="preset-status" class="status-text" data-i18n="presets.loading">正在加载预设…</p>
+          <div class="brand-copy">
+            <p class="brand-name" data-i18n="app.eyebrow">Agent Desk</p>
+            <p class="brand-tagline" data-i18n="app.subtitle">桌面 Agent 诊断工具</p>
           </div>
         </div>
-        <div class="preset-row">
-          <select id="preset-select" aria-label="配置预设"></select>
-          <button id="preset-apply" type="button" class="btn-secondary" data-i18n="presets.switch">切换</button>
-        </div>
-        <p id="preset-hint" class="preset-hint"></p>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <h2 data-i18n="doctor.title">诊断</h2>
-            <p id="status" class="status-text" data-i18n="doctor.loading">加载中…</p>
+        <div class="toolbar-actions">
+          <div class="lang-switch" role="group" aria-label="Language">
+            <button type="button" class="lang-btn" data-lang="zh" data-i18n="lang.zh">中文</button>
+            <button type="button" class="lang-btn" data-lang="en" data-i18n="lang.en">EN</button>
           </div>
-          <button id="refresh" type="button" class="btn-primary">
-            <span class="btn-label" data-i18n="doctor.run">运行诊断</span>
+          <button id="refresh" type="button" class="btn-scan" title="Run doctor">
+            <span class="btn-scan-icon" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 4V9H4.58152M19.9381 11C19.446 7.05369 16.0796 4 12 4C8.64262 4 5.76829 6.06817 4.58152 9M4.58152 9H9M20 20V15H19.4185M19.4185 15C18.2317 17.9318 15.3574 20 12 20C7.92038 20 4.55399 16.9463 4.06189 13M19.4185 15H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <span class="btn-label" data-i18n="doctor.run">扫描</span>
             <span class="spinner" hidden aria-hidden="true"></span>
           </button>
         </div>
+      </header>
+
+      <section class="health-strip" id="health-strip" aria-live="polite">
+        <div class="health-pill" id="health-pill">
+          <span class="health-dot" id="health-dot" aria-hidden="true"></span>
+          <span class="health-label" id="health-label" data-i18n="health.ready">就绪</span>
+        </div>
+        <div class="stat-chips">
+          <div class="stat-chip">
+            <span class="stat-chip-label" data-i18n="summary.installed">已安装</span>
+            <strong class="stat-chip-value" id="installed-count">—</strong>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label" data-i18n="summary.preset">预设</span>
+            <strong class="stat-chip-value" id="profile-status">—</strong>
+          </div>
+          <div class="stat-chip">
+            <span class="stat-chip-label" data-i18n="summary.lastScan">扫描</span>
+            <strong class="stat-chip-value stat-chip-value-sm" id="last-scan">—</strong>
+          </div>
+        </div>
       </section>
 
-      <section class="section-head">
-        <h2 data-i18n="runtimes.title">Runtime</h2>
-        <p id="runtime-count" class="section-meta">—</p>
+      <p id="status" class="status-banner" data-i18n="doctor.loading">加载中…</p>
+
+      <section class="widget-section">
+        <div class="section-label">
+          <span class="section-icon" aria-hidden="true">◈</span>
+          <h2 data-i18n="presets.title">配置预设</h2>
+        </div>
+        <p id="preset-status" class="section-hint" data-i18n="presets.loading">正在加载预设…</p>
+        <div class="preset-row">
+          <div class="picker" id="preset-picker">
+            <button
+              type="button"
+              class="picker-trigger"
+              id="preset-trigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              disabled
+            >
+              <span class="picker-leading" aria-hidden="true">◈</span>
+              <span class="picker-value" id="preset-trigger-label">—</span>
+              <span class="picker-chevron" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </button>
+            <div class="picker-menu" id="preset-menu" role="listbox" hidden></div>
+          </div>
+          <button id="preset-apply" type="button" class="btn-secondary" data-i18n="presets.switch">切换</button>
+        </div>
+        <p id="preset-hint" class="section-footnote"></p>
       </section>
 
-      <section id="runtimes" class="runtimes" aria-live="polite"></section>
+      <section class="widget-section runtime-section">
+        <div class="section-label">
+          <span class="section-icon" aria-hidden="true">⬡</span>
+          <h2 data-i18n="runtimes.title">Runtime</h2>
+          <span id="runtime-count" class="section-badge">—</span>
+        </div>
+        <div id="runtime-tabs" class="runtime-tabs" role="tablist" aria-label="Runtimes"></div>
+        <div id="runtimes" class="runtime-panels" aria-live="polite"></div>
+      </section>
+
+      <footer class="widget-footer">
+        <span data-i18n="app.footer">本机 Runtime 发现 · 配置 · 健康检查</span>
+      </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
