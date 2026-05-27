@@ -24,7 +24,11 @@ pub fn run(json: bool) -> Result<()> {
 
     println!();
     for runtime in &report.runtimes {
-        let status = if runtime.installed { "installed" } else { "not installed" };
+        let status = if runtime.installed {
+            "installed"
+        } else {
+            "not installed"
+        };
         println!("{} ({}) — {status}", runtime.display_name, runtime.id);
         if let Some(version) = &runtime.version {
             println!("  version: {version}");

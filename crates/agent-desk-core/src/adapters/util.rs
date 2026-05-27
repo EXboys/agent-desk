@@ -4,9 +4,7 @@ use std::process::Command;
 use crate::adapter::AdapterDiscovery;
 
 pub fn home_join(relative: &str) -> PathBuf {
-    dirs::home_dir()
-        .expect("home directory")
-        .join(relative)
+    dirs::home_dir().expect("home directory").join(relative)
 }
 
 pub fn find_binary(name: &str) -> Option<PathBuf> {

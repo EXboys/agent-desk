@@ -43,9 +43,7 @@ pub fn run_doctor() -> DoctorReport {
                 display_name: adapter.display_name().to_string(),
                 installed: discovery.installed,
                 version: discovery.version,
-                binary_path: discovery
-                    .binary_path
-                    .map(|path| path.display().to_string()),
+                binary_path: discovery.binary_path.map(|path| path.display().to_string()),
                 config_paths: adapter
                     .config_paths()
                     .into_iter()
