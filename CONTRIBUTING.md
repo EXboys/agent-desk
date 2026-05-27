@@ -11,6 +11,7 @@ Agent Desk is in early bootstrap. Before opening large PRs, please open an issue
 - `cli/` — `agent-desk` binary (Rust)
 - `desktop/` — Tauri menubar app (Rust + TypeScript UI)
 - `adapters/` — adapter contract docs; implementations live in `agent-desk-core`
+- `scripts/check.sh` — local fmt/clippy/test (see [docs/development.md](docs/development.md))
 - `docs/` — user docs; optional enterprise integration in `enterprise.md`
 
 ## Code of conduct
