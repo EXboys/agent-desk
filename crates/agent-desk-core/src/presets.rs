@@ -24,6 +24,9 @@ pub struct ProfilesDocument {
 pub struct ProfileEntry {
     #[serde(default)]
     pub hermes: Option<HermesProfilePreset>,
+    /// Quick-switch model options within this scene (layer 2).
+    #[serde(default)]
+    pub models: Vec<HermesProfilePreset>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -51,6 +54,41 @@ pub fn default_local_hermes_preset() -> HermesProfilePreset {
     }
 }
 
+pub fn default_work_models() -> Vec<HermesProfilePreset> {
+    vec![
+        HermesProfilePreset {
+            provider: "deepseek".to_string(),
+            model: "deepseek-v4-flash".to_string(),
+            base_url: "https://api.deepseek.com/v1".to_string(),
+        },
+        HermesProfilePreset {
+            provider: "openai".to_string(),
+            model: "gpt-4o".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+        },
+        HermesProfilePreset {
+            provider: "anthropic".to_string(),
+            model: "claude-sonnet-4-20250514".to_string(),
+            base_url: "https://api.anthropic.com/v1".to_string(),
+        },
+    ]
+}
+
+pub fn effective_models(entry: &ProfileEntry) -> Vec<HermesProfilePreset> {
+    if !entry.models.is_empty() {
+        return entry.models.clone();
+    }
+    entry.hermes.clone().into_iter().collect()
+}
+
+fn ensure_profile_models(entry: &mut ProfileEntry, defaults: Vec<HermesProfilePreset>) -> bool {
+    if entry.models.is_empty() && !defaults.is_empty() {
+        entry.models = defaults;
+        return true;
+    }
+    false
+}
+
 /// Adds built-in presets that may be missing from older profiles files.
 pub fn merge_builtin_profiles(doc: &mut ProfilesDocument) -> bool {
     let mut changed = false;
@@ -59,9 +97,26 @@ pub fn merge_builtin_profiles(doc: &mut ProfilesDocument) -> bool {
             "local".to_string(),
             ProfileEntry {
                 hermes: Some(default_local_hermes_preset()),
+                models: vec![default_local_hermes_preset()],
             },
         );
         changed = true;
+    }
+    if let Some(entry) = doc.profiles.get_mut("work") {
+        changed |= ensure_profile_models(entry, default_work_models());
+    }
+    if let Some(entry) = doc.profiles.get_mut("personal") {
+        changed |= ensure_profile_models(
+            entry,
+            vec![HermesProfilePreset {
+                provider: "openai".to_string(),
+                model: "gpt-4o".to_string(),
+                base_url: "https://api.openai.com/v1".to_string(),
+            }],
+        );
+    }
+    if let Some(entry) = doc.profiles.get_mut("local") {
+        changed |= ensure_profile_models(entry, vec![default_local_hermes_preset()]);
     }
     changed
 }
@@ -125,6 +180,7 @@ pub fn init_example_profiles() -> Result<PathBuf> {
                 model: "deepseek-v4-flash".to_string(),
                 base_url: "https://api.deepseek.com/v1".to_string(),
             }),
+            models: default_work_models(),
         },
     );
     profiles.insert(
@@ -135,12 +191,18 @@ pub fn init_example_profiles() -> Result<PathBuf> {
                 model: "gpt-4o".to_string(),
                 base_url: "https://api.openai.com/v1".to_string(),
             }),
+            models: vec![HermesProfilePreset {
+                provider: "openai".to_string(),
+                model: "gpt-4o".to_string(),
+                base_url: "https://api.openai.com/v1".to_string(),
+            }],
         },
     );
     profiles.insert(
         "local".to_string(),
         ProfileEntry {
             hermes: Some(default_local_hermes_preset()),
+            models: vec![default_local_hermes_preset()],
         },
     );
 
@@ -194,6 +256,28 @@ pub fn use_profile(name: &str) -> Result<UseProfileReport> {
         applied,
         skipped,
     })
+}
+
+/// Switch Hermes model within the active scene without changing the active profile name.
+pub fn apply_profile_model(profile: &str, preset: HermesProfilePreset) -> Result<ApplyReport> {
+    let mut doc = load_profiles()?;
+    let entry = doc
+        .profiles
+        .get_mut(profile)
+        .with_context(|| format!("profile '{profile}' not found"))?;
+
+    let report = set_runtime_model("hermes", preset.clone().into(), None)?;
+    entry.hermes = Some(preset.clone());
+    let exists = entry.models.iter().any(|item| {
+        item.provider == preset.provider
+            && item.model == preset.model
+            && item.base_url == preset.base_url
+    });
+    if !exists {
+        entry.models.push(preset);
+    }
+    save_profiles(&doc)?;
+    Ok(report)
 }
 
 pub fn show_config(runtime_id: &str) -> Result<String> {
@@ -253,7 +337,7 @@ mod tests {
     }
 
     #[test]
-    fn merge_builtin_profiles_adds_local() {
+    fn merge_builtin_profiles_adds_local_and_work_models() {
         let mut doc = ProfilesDocument {
             active: Some("work".to_string()),
             profiles: BTreeMap::from([(
@@ -264,10 +348,13 @@ mod tests {
                         model: "deepseek-v4-flash".to_string(),
                         base_url: "https://api.deepseek.com/v1".to_string(),
                     }),
+                    models: Vec::new(),
                 },
             )]),
         };
         assert!(merge_builtin_profiles(&mut doc));
+        let work = doc.profiles.get("work").unwrap();
+        assert_eq!(work.models.len(), 3);
         let local = doc.profiles.get("local").unwrap().hermes.as_ref().unwrap();
         assert_eq!(local.provider, "ollama");
         assert_eq!(local.base_url, OLLAMA_DEFAULT_BASE_URL);

@@ -1,6 +1,7 @@
 use agent_desk_core::{
-    load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport, DoctorReport,
-    HermesAdapter, HermesSettings, ProfilesDocument, RuntimeModelPreset, UseProfileReport,
+    apply_profile_model, load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport,
+    DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProfilesDocument,
+    RuntimeModelPreset, UseProfileReport,
 };
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{Emitter, Manager};
@@ -64,6 +65,24 @@ fn set_hermes_model_command(
     .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn apply_profile_model_command(
+    profile: String,
+    provider: String,
+    model: String,
+    base_url: String,
+) -> Result<ApplyReport, String> {
+    apply_profile_model(
+        &profile,
+        HermesProfilePreset {
+            provider,
+            model,
+            base_url,
+        },
+    )
+    .map_err(|error| error.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -114,7 +133,8 @@ pub fn run() {
             list_profiles_command,
             use_profile_command,
             get_hermes_model_command,
-            set_hermes_model_command
+            set_hermes_model_command,
+            apply_profile_model_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

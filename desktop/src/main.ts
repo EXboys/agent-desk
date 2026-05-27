@@ -39,6 +39,7 @@ interface HermesSettings {
 
 interface ProfileEntry {
   hermes?: Pick<HermesSettings, "provider" | "model" | "base_url">;
+  models?: Array<Pick<HermesSettings, "provider" | "model" | "base_url">>;
 }
 
 interface ProfilesDocument {
@@ -77,11 +78,114 @@ const langSwitchEl = document.querySelector<HTMLElement>(".lang-switch")!;
 const healthPillEl = document.querySelector<HTMLElement>("#health-pill")!;
 const healthLabelEl = document.querySelector<HTMLElement>("#health-label")!;
 
+const PROVIDER_LABELS: Record<string, string> = {
+  deepseek: "DeepSeek",
+  openai: "OpenAI",
+  anthropic: "Claude",
+  ollama: "Ollama",
+};
+
 const RUNTIME_SHORT: Record<string, string> = {
   openclaw: "OC",
   hermes: "HE",
   "claude-code": "CC",
 };
+
+interface HermesModelOption {
+  provider: string;
+  model: string;
+  base_url: string;
+  label: string;
+  group: "common" | "saved" | "custom";
+}
+
+const COMMON_HERMES_MODELS: HermesModelOption[] = [
+  {
+    provider: "deepseek",
+    model: "deepseek-v4-flash",
+    base_url: "https://api.deepseek.com/v1",
+    label: "DeepSeek · deepseek-v4-flash",
+    group: "common",
+  },
+  {
+    provider: "openai",
+    model: "gpt-4o",
+    base_url: "https://api.openai.com/v1",
+    label: "OpenAI · gpt-4o",
+    group: "common",
+  },
+  {
+    provider: "openai",
+    model: "gpt-4o-mini",
+    base_url: "https://api.openai.com/v1",
+    label: "OpenAI · gpt-4o-mini",
+    group: "common",
+  },
+  {
+    provider: "anthropic",
+    model: "claude-sonnet-4-20250514",
+    base_url: "https://api.anthropic.com/v1",
+    label: "Claude · claude-sonnet-4-20250514",
+    group: "common",
+  },
+  {
+    provider: "ollama",
+    model: "llama3.2",
+    base_url: "http://127.0.0.1:11434/v1",
+    label: "Ollama · llama3.2",
+    group: "common",
+  },
+];
+
+const MODEL_PRESET_CUSTOM = "__custom__";
+
+function modelPresetKey(option: Pick<HermesModelOption, "provider" | "model" | "base_url">): string {
+  return `${option.provider}|${option.model}|${option.base_url}`;
+}
+
+function buildHermesModelOptions(): HermesModelOption[] {
+  const seen = new Set<string>();
+  const options: HermesModelOption[] = [];
+
+  const push = (option: HermesModelOption) => {
+    const key = modelPresetKey(option);
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    options.push(option);
+  };
+
+  for (const option of COMMON_HERMES_MODELS) {
+    push(option);
+  }
+
+  const activeProfile = lastProfiles?.active;
+  const profiles = lastProfiles?.profiles;
+  if (activeProfile && profiles?.[activeProfile]) {
+    for (const saved of effectiveModels(profiles[activeProfile])) {
+      push({
+        ...saved,
+        label: modelChipLabel(saved),
+        group: "saved",
+      });
+    }
+  }
+
+  return options;
+}
+
+function findMatchingPreset(
+  current: Pick<HermesSettings, "provider" | "model" | "base_url">,
+): string {
+  const key = modelPresetKey(current);
+  for (const option of buildHermesModelOptions()) {
+    if (modelPresetKey(option) === key) {
+      return key;
+    }
+  }
+  return MODEL_PRESET_CUSTOM;
+}
 
 let lastReport: DoctorReport | null = null;
 let lastProfiles: ProfilesDocument | null = null;
@@ -119,15 +223,57 @@ function runtimeInitials(id: string, displayName: string): string {
   return RUNTIME_SHORT[id] ?? displayName.slice(0, 2).toUpperCase();
 }
 
+function effectiveModels(
+  entry: ProfileEntry | undefined,
+): Array<Pick<HermesSettings, "provider" | "model" | "base_url">> {
+  if (!entry) {
+    return [];
+  }
+  if (entry.models && entry.models.length > 0) {
+    return entry.models;
+  }
+  return entry.hermes ? [entry.hermes] : [];
+}
+
+function modelChipLabel(model: Pick<HermesSettings, "provider" | "model">): string {
+  const provider = PROVIDER_LABELS[model.provider] ?? model.provider;
+  return `${provider} · ${model.model}`;
+}
+
+function applyModelPresetToCard(card: HTMLElement, presetKey: string): void {
+  if (presetKey === MODEL_PRESET_CUSTOM) {
+    return;
+  }
+  const [provider, model, baseUrl] = presetKey.split("|");
+  if (!provider || !model || !baseUrl) {
+    return;
+  }
+  const providerEl = card.querySelector<HTMLInputElement>('[data-field="provider"]');
+  const modelEl = card.querySelector<HTMLInputElement>('[data-field="model"]');
+  const baseUrlEl = card.querySelector<HTMLInputElement>('[data-field="base_url"]');
+  if (providerEl) {
+    providerEl.value = provider;
+  }
+  if (modelEl) {
+    modelEl.value = model;
+  }
+  if (baseUrlEl) {
+    baseUrlEl.value = baseUrl;
+  }
+}
+
 function setStatusBanner(
   kind: "ok" | "warn" | "error" | "neutral",
   message: string,
 ): void {
   statusEl.textContent = message;
   statusEl.classList.remove("is-ok", "is-warn", "is-error");
-  if (kind !== "neutral") {
-    statusEl.classList.add(`is-${kind}`);
+  if (kind === "neutral") {
+    statusEl.hidden = true;
+    return;
   }
+  statusEl.hidden = false;
+  statusEl.classList.add(`is-${kind}`);
 }
 
 function updateHealthStrip(installed: number, total: number, scanning = false): void {
@@ -178,6 +324,71 @@ function metaInput(
   `;
 }
 
+function metaSelect(
+  labelKey: Parameters<typeof t>[0],
+  field: string,
+  options: Array<{ value: string; label: string; group?: string }>,
+  selectedValue: string,
+): string {
+  const groups = new Map<string, Array<{ value: string; label: string }>>();
+  for (const option of options) {
+    const group = option.group ?? "";
+    if (!groups.has(group)) {
+      groups.set(group, []);
+    }
+    groups.get(group)!.push(option);
+  }
+
+  const body = [...groups.entries()]
+    .map(([group, items]) => {
+      const opts = items
+        .map(
+          (item) =>
+            `<option value="${escapeHtml(item.value)}" ${item.value === selectedValue ? "selected" : ""}>${escapeHtml(item.label)}</option>`,
+        )
+        .join("");
+      if (!group) {
+        return opts;
+      }
+      const groupLabel =
+        group === "common"
+          ? t("meta.modelGroupCommon")
+          : group === "saved"
+            ? t("meta.modelGroupSaved")
+            : "";
+      if (!groupLabel) {
+        return opts;
+      }
+      return `<optgroup label="${escapeHtml(groupLabel)}">${opts}</optgroup>`;
+    })
+    .join("");
+
+  return `
+    <label class="meta-row meta-row-edit">
+      <span class="meta-label">${t(labelKey)}</span>
+      <select class="meta-input meta-select" data-field="${field}">${body}</select>
+    </label>
+  `;
+}
+
+function renderHermesModelPresetSelect(
+  current: Pick<HermesSettings, "provider" | "model" | "base_url">,
+): string {
+  const selected = findMatchingPreset(current);
+  const options = buildHermesModelOptions().map((option) => ({
+    value: modelPresetKey(option),
+    label: option.label,
+    group: option.group,
+  }));
+  options.push({
+    value: MODEL_PRESET_CUSTOM,
+    label: t("meta.modelCustom"),
+    group: "custom",
+  });
+
+  return metaSelect("meta.modelPreset", "model-preset", options, selected);
+}
+
 function renderApiKeyRow(settings: HermesSettings): string {
   if (!settings.api_key_env) {
     return metaRow("meta.apiKey", t("meta.apiKeyOptional"));
@@ -210,6 +421,7 @@ function renderHermesCard(runtime: RuntimeDoctorResult): string {
 
   const meta = hermesEditing
     ? [
+        renderHermesModelPresetSelect(model),
         metaInput("meta.provider", "provider", model.provider),
         metaInput("meta.model", "model", model.model),
         metaInput("meta.gateway", "base_url", model.base_url),
@@ -532,6 +744,49 @@ async function refresh() {
   }
 }
 
+async function saveHermesCard(card: HTMLElement) {
+  const hint = card.querySelector<HTMLElement>("[data-hermes-hint]");
+  const saveBtn = card.querySelector<HTMLButtonElement>('[data-action="save-hermes"]');
+  const draft = readHermesDraft(card);
+
+  saveBtn?.setAttribute("disabled", "true");
+  if (hint) {
+    hint.textContent = t("runtime.saving");
+  }
+
+  try {
+    await invoke<{ restart_hint: string; backup_path: string | null }>("set_hermes_model_command", {
+      provider: draft.provider,
+      model: draft.model,
+      baseUrl: draft.base_url,
+      apiKey: draft.api_key ? draft.api_key : null,
+    });
+
+    const activeProfile = lastProfiles?.active;
+    if (activeProfile) {
+      const profileReport = await invoke<{ restart_hint: string }>("apply_profile_model_command", {
+        profile: activeProfile,
+        provider: draft.provider,
+        model: draft.model,
+        baseUrl: draft.base_url,
+      });
+      if (hint) {
+        hint.textContent = profileReport.restart_hint;
+      }
+    }
+
+    hermesEditing = false;
+    await loadProfiles();
+    await refresh();
+  } catch (error) {
+    if (hint) {
+      hint.textContent = String(error);
+    }
+  } finally {
+    saveBtn?.removeAttribute("disabled");
+  }
+}
+
 async function applyPreset() {
   const name = selectedPresetName;
   if (!name) {
@@ -574,41 +829,6 @@ function readHermesDraft(card: HTMLElement): {
   };
 }
 
-async function saveHermesCard(card: HTMLElement) {
-  const hint = card.querySelector<HTMLElement>("[data-hermes-hint]");
-  const saveBtn = card.querySelector<HTMLButtonElement>('[data-action="save-hermes"]');
-  const draft = readHermesDraft(card);
-
-  saveBtn?.setAttribute("disabled", "true");
-  if (hint) {
-    hint.textContent = t("runtime.saving");
-  }
-
-  try {
-    const payload = {
-      provider: draft.provider,
-      model: draft.model,
-      base_url: draft.base_url,
-      api_key: draft.api_key ? draft.api_key : null,
-    };
-    const report = await invoke<{
-      restart_hint: string;
-      backup_path: string | null;
-    }>("set_hermes_model_command", payload);
-    hermesEditing = false;
-    if (hint) {
-      hint.textContent = report.restart_hint;
-    }
-    await refresh();
-  } catch (error) {
-    if (hint) {
-      hint.textContent = String(error);
-    }
-  } finally {
-    saveBtn?.removeAttribute("disabled");
-  }
-}
-
 function updateLangButtons() {
   const current = getLocale();
   langSwitchEl.querySelectorAll<HTMLButtonElement>(".lang-btn").forEach((button) => {
@@ -647,6 +867,16 @@ runtimeTabsEl.addEventListener("click", (event) => {
   hermesEditing = false;
   if (lastReport) {
     void renderReport(lastReport);
+  }
+});
+
+runtimesEl.addEventListener("change", (event) => {
+  const target = event.target as HTMLElement;
+  if (target instanceof HTMLSelectElement && target.dataset.field === "model-preset") {
+    const card = target.closest<HTMLElement>('[data-runtime="hermes"]');
+    if (card) {
+      applyModelPresetToCard(card, target.value);
+    }
   }
 });
 
