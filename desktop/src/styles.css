@@ -300,33 +300,23 @@ body::before {
   font-weight: 700;
 }
 
-.status-banner {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-muted);
-  color: var(--text-muted);
-  font-size: 0.74rem;
-  line-height: 1.4;
+.status-footnote {
+  margin: 0 0 4px;
+  font-size: 0.64rem;
+  line-height: 1.45;
+  color: var(--text-soft);
 }
 
-.status-banner.is-ok {
-  border-color: rgba(22, 163, 74, 0.18);
-  background: var(--success-bg);
-  color: #166534;
+.status-footnote.is-ok {
+  color: #15803d;
 }
 
-.status-banner.is-warn {
-  border-color: rgba(217, 119, 6, 0.18);
-  background: var(--warn-bg);
-  color: #92400e;
+.status-footnote.is-warn {
+  color: var(--text-soft);
 }
 
-.status-banner.is-error {
-  border-color: rgba(220, 38, 38, 0.15);
-  background: var(--danger-bg);
-  color: #991b1b;
+.status-footnote.is-error {
+  color: #b91c1c;
 }
 
 .widget-section {
@@ -824,6 +814,14 @@ body::before {
   font-family: inherit;
 }
 
+.meta-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9L12 15L18 9' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+}
+
 .card-actions {
   display: flex;
   justify-content: flex-end;
@@ -849,6 +847,10 @@ body::before {
 }
 
 .widget-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
   margin-top: 10px;
   padding-top: 8px;
   border-top: 1px solid var(--border);

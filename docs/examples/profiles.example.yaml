@@ -6,15 +6,33 @@ profiles:
       provider: ollama
       model: llama3.2
       base_url: http://127.0.0.1:11434/v1
+    models:
+      - provider: ollama
+        model: llama3.2
+        base_url: http://127.0.0.1:11434/v1
 
   work:
     hermes:
       provider: deepseek
       model: deepseek-v4-flash
       base_url: https://api.deepseek.com/v1
+    models:
+      - provider: deepseek
+        model: deepseek-v4-flash
+        base_url: https://api.deepseek.com/v1
+      - provider: openai
+        model: gpt-4o
+        base_url: https://api.openai.com/v1
+      - provider: anthropic
+        model: claude-sonnet-4-20250514
+        base_url: https://api.anthropic.com/v1
 
   personal:
     hermes:
       provider: openai
       model: gpt-4o
       base_url: https://api.openai.com/v1
+    models:
+      - provider: openai
+        model: gpt-4o
+        base_url: https://api.openai.com/v1
