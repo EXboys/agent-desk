@@ -87,11 +87,15 @@ agent-desk policy pull
 # CLI
 cargo run -p agent-desk -- doctor
 
+# Local CI checks (fmt / clippy / test)
+make check
+# or: ./scripts/check.sh cli
+
 # Desktop menubar (requires Node.js)
 cd desktop && npm install && npm run tauri dev
 ```
 
-See [docs/ROADMAP.md](docs/ROADMAP.md), [docs/install.md](docs/install.md), [cli/README.md](cli/README.md), [desktop/README.md](desktop/README.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
+See [docs/development.md](docs/development.md), [docs/ROADMAP.md](docs/ROADMAP.md), [docs/install.md](docs/install.md), [cli/README.md](cli/README.md), [desktop/README.md](desktop/README.md), and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Install
 
