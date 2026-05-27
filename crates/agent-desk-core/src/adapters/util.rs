@@ -8,23 +8,16 @@ pub fn home_join(relative: &str) -> PathBuf {
 }
 
 pub fn find_binary(name: &str) -> Option<PathBuf> {
-    if let Some(path) = find_in_path(name) {
-        return Some(path);
-    }
-
-    for dir in common_binary_dirs() {
-        let candidate = dir.join(name);
-        if candidate.is_file() {
-            return Some(candidate);
-        }
-    }
-
-    None
+    find_in_path(name).or_else(|| find_binary_in_dirs(name, &common_binary_dirs()))
 }
 
 fn find_in_path(name: &str) -> Option<PathBuf> {
     let path_var = std::env::var_os("PATH")?;
-    for dir in std::env::split_paths(&path_var) {
+    find_binary_in_dirs(name, &std::env::split_paths(&path_var).collect::<Vec<_>>())
+}
+
+fn find_binary_in_dirs(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
+    for dir in dirs {
         let candidate = dir.join(name);
         if candidate.is_file() {
             return Some(candidate);
@@ -80,13 +73,39 @@ fn read_version(binary: &PathBuf, flags: &[&str]) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
+
+    fn write_executable(path: &PathBuf) {
+        fs::write(path, b"#!/bin/sh\nexit 0\n").unwrap();
+        #[cfg(unix)]
+        {
+            let mut perms = fs::metadata(path).unwrap().permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(path, perms).unwrap();
+        }
+        #[cfg(windows)]
+        {
+            let _ = fs::metadata(path);
+        }
+    }
 
     #[test]
-    fn finds_hermes_in_local_bin_without_shell_path() {
-        let path = find_binary("hermes");
-        assert!(
-            path.is_some(),
-            "expected hermes under ~/.local/bin or similar"
-        );
+    fn finds_binary_in_supplemental_dirs() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        let bin = temp.path().join("agent-desk-probe");
+        write_executable(&bin);
+
+        let found = find_binary_in_dirs("agent-desk-probe", &[temp.path().to_path_buf()]);
+        assert_eq!(found, Some(bin));
+    }
+
+    #[test]
+    fn common_binary_dirs_includes_home_local_bin() {
+        let dirs = common_binary_dirs();
+        let home = dirs::home_dir().expect("home");
+        assert!(dirs.contains(&home.join(".local/bin")));
+        assert!(dirs.contains(&PathBuf::from("/usr/local/bin")));
     }
 }
