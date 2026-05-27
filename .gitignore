@@ -1,0 +1,38 @@
+# Build
+/target/
+/dist/
+/build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Rust
+Cargo.lock
+# Keep Cargo.lock for binaries when we ship; ignore for now during bootstrap
+
+# Node / Tauri
+node_modules/
+.tauri/
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Local env / secrets
+.env
+.env.*
+*.pem
+evotown.agent.env
+!docs/examples/evotown.agent.env.example
+
+# Test / cache
+.coverage
+__pycache__/
+*.log
