@@ -8,7 +8,9 @@ pub fn home_join(relative: &str) -> PathBuf {
 }
 
 pub fn find_binary(name: &str) -> Option<PathBuf> {
-    find_in_path(name).or_else(|| find_binary_in_dirs(name, &common_binary_dirs()))
+    find_in_path(name)
+        .or_else(|| find_binary_in_dirs(name, &common_binary_dirs()))
+        .or_else(|| find_with_where_exe(name))
 }
 
 fn find_in_path(name: &str) -> Option<PathBuf> {
@@ -21,6 +23,13 @@ fn find_binary_in_dirs(name: &str, dirs: &[PathBuf]) -> Option<PathBuf> {
         let candidate = dir.join(name);
         if candidate.is_file() {
             return Some(candidate);
+        }
+        #[cfg(target_os = "windows")]
+        {
+            let exe_candidate = dir.join(format!("{name}.exe"));
+            if exe_candidate.is_file() {
+                return Some(exe_candidate);
+            }
         }
     }
     None
@@ -39,6 +48,22 @@ fn common_binary_dirs() -> Vec<PathBuf> {
     }
 
     dirs
+}
+
+/// Use `where.exe` on Windows to find executables that may be in restricted
+/// directories (e.g. WindowsApps) where read_dir() would fail.
+fn find_with_where_exe(name: &str) -> Option<PathBuf> {
+    let output = Command::new("where").arg(name).output().ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let first_line = stdout.lines().next()?.trim();
+    if first_line.is_empty() {
+        return None;
+    }
+    let candidate = PathBuf::from(first_line);
+    candidate.is_file().then_some(candidate)
 }
 
 pub fn discover_binary(name: &str) -> AdapterDiscovery {
