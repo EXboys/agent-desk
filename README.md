@@ -1,6 +1,8 @@
 # Agent Doctor
 
-**Enterprise health, repair, and compliance for local AI agent runtimes** — help DevEx and IT teams diagnose employee machines, back up risky configs, and restore agents to team-approved settings.
+**Diagnose, back up, and repair local AI agent runtimes.**
+
+Agent Doctor helps developers and teams understand why Claude Code, Codex, OpenClaw, Hermes, and other local agent runtimes break, then safely repair them with redacted diagnostics, typed actions, backups, and audit reports.
 
 [License: MIT](LICENSE)
 
@@ -8,7 +10,7 @@
 
 ## Why Agent Doctor?
 
-Teams increasingly run **several** local AI agent runtimes across employee laptops:
+Developers and teams increasingly run **several** local AI agent runtimes:
 
 
 | Runtime                                                       | Typical config              |
@@ -19,7 +21,7 @@ Teams increasingly run **several** local AI agent runtimes across employee lapto
 | Codex CLI                                                     | `~/.codex/config.toml`      |
 
 
-Each runtime has its own install path, gateway settings, skills manifest, policy surface, and failure modes. Agent Doctor gives teams **one** local client to answer:
+Each runtime has its own install path, gateway settings, skills manifest, policy surface, and failure modes. Agent Doctor gives you **one** local client to answer:
 
 - What is installed on this laptop?
 - Where do configs live?
@@ -39,7 +41,7 @@ Each runtime has its own install path, gateway settings, skills manifest, policy
    OpenClaw · Hermes · Claude Code · Codex
 ```
 
-Teams can plug in an enterprise control plane (e.g. [Evotown](https://github.com/EXboys/evotown)) for gateway keys, SkillHub, policy, and audit workflows — see [docs/enterprise.md](docs/enterprise.md).
+Teams can plug in an enterprise control plane (e.g. [Evotown](https://github.com/EXboys/evotown)) for gateway keys, SkillHub, policy, compliance checks, and audit workflows — see [docs/enterprise.md](docs/enterprise.md).
 
 ---
 
