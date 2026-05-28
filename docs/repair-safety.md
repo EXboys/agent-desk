@@ -23,7 +23,13 @@ Agent Doctor treats repair as a controlled enterprise workflow, not as a free-fo
 
 ## Repair Flow
 
-1. Collect deterministic probe facts.
+1. Collect deterministic probe facts:
+   - binary existence and `--version`
+   - PATH/default binary and duplicate install candidates
+   - config existence, parse status, and runtime-specific schema warnings
+   - environment variable conflicts from process and common shell files
+   - gateway/base_url TCP reachability
+   - obvious MCP/Skills path references and broken links
 2. Create a backup snapshot before modifying files.
 3. Redact the diagnostic bundle.
 4. Let AI summarize and rank likely causes from redacted facts.
@@ -43,4 +49,4 @@ Teams can require:
 - High-risk actions disabled unless policy explicitly allows them.
 - Local audit reports for IT support or control-plane ingestion.
 
-The current `agent-doctor repair <runtime>` command prints the safe repair preview. Runtime-specific repair playbooks will build on this foundation.
+The current `agent-doctor repair <runtime>` command runs read-only probes and prints the safe repair preview. Runtime-specific repair playbooks will build on this foundation.
