@@ -1,6 +1,6 @@
 # Agent Doctor 中文说明
 
-**Agent Doctor（本机 Agent 诊断与修复工具）** 是在员工笔记本电脑上诊断、备份并修复多种桌面 Agent runtime 的开源客户端。
+**Agent Doctor（企业本机 Agent 诊断、修复与合规工具）** 是面向团队/企业 DevEx 与 IT 的轻量客户端，用于在员工电脑上诊断、备份、修复并合规化多种桌面 Agent runtime。
 
 ## 解决什么问题
 
@@ -11,20 +11,22 @@
 - **Claude Code** — IDE/终端里的 coding agent  
 - **Codex CLI** — OpenAI coding agent  
 
-各自安装路径、配置文件、网关、Skill/MCP 配置和日志位置都不同。Agent 出问题时，很难快速判断是安装损坏、配置漂移、环境变量冲突，还是团队网关配置错误。
+各自安装路径、配置文件、网关、Skill/MCP 配置、策略面和日志位置都不同。Agent 出问题或不符合团队标准时，很难快速判断是安装损坏、配置漂移、环境变量冲突，还是团队网关/policy 配置错误。
 
 Agent Doctor 提供：
 
 1. **发现** — 装了哪些、版本、配置在哪  
 2. **诊断** — `doctor` 检查安装、配置、网关与密钥来源  
-3. **备份** — 修复前保存 runtime 配置快照（计划）  
-4. **修复** — 针对 OpenClaw、Hermes、Claude Code、Codex 等生成并执行修复方案（计划）  
-5. **同步** — 从控制面拉团队 profile、Skill bundle 和 policy（计划）
+3. **合规** — 检查 runtime 是否指向团队批准的 gateway/profile/policy  
+4. **备份** — 修复前保存 runtime 配置快照（计划）  
+5. **修复** — 针对 OpenClaw、Hermes、Claude Code、Codex 等生成并执行确认后的修复方案（计划）  
+6. **审计** — 输出脱敏 repair report 与回滚提示（计划）  
+7. **同步** — 从控制面拉团队 profile、Skill bundle 和 policy（计划）
 
 ## 和 ClawPanel 的区别
 
 - [ClawPanel](https://github.com/qingchencloud/clawpanel) 侧重 **OpenClaw + Hermes** 图形化管理。  
-- Agent Doctor 侧重 **跨 Runtime 本机诊断、备份、修复与团队配置验证**，CLI 优先，桌面菜单栏作为轻量补充。
+- Agent Doctor 侧重 **企业/团队的跨 Runtime 本机诊断、备份、修复、合规验证与审计报告**，CLI 优先，桌面菜单栏作为轻量补充。
 
 ## 企业控制面（可选）
 
