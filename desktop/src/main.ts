@@ -58,6 +58,25 @@ interface UseProfileReport {
   skipped: string[];
 }
 
+interface RepairPreviewResponse {
+  runtime_id: string;
+  display_name: string;
+  summary: {
+    pass: number;
+    warn: number;
+    fail: number;
+    not_applicable: number;
+    not_checked: number;
+  };
+  checks: Array<{
+    title: string;
+    status: "pass" | "warn" | "fail" | "n/a" | "not checked";
+    message: string;
+    details: string[];
+  }>;
+  plan_summary: string;
+}
+
 const statusEl = document.querySelector<HTMLElement>("#status")!;
 const runtimesEl = document.querySelector<HTMLElement>("#runtimes")!;
 const runtimeTabsEl = document.querySelector<HTMLElement>("#runtime-tabs")!;
@@ -193,6 +212,11 @@ let lastProfiles: ProfilesDocument | null = null;
 let hermesModel: HermesSettings | null = null;
 let hermesEditing = false;
 let activeRuntimeId: string | null = null;
+
+type RepairStatusFilter = "all" | RepairPreviewResponse["checks"][number]["status"];
+
+const repairPreviewByRuntime = new Map<string, RepairPreviewResponse>();
+const repairFilterByRuntime = new Map<string, RepairStatusFilter>();
 let selectedPresetName = "";
 let presetMenuOpen = false;
 
@@ -406,6 +430,153 @@ function renderApiKeyRow(settings: HermesSettings): string {
   );
 }
 
+function renderRepairSummaryChip(
+  filter: RepairStatusFilter,
+  count: number,
+  className: string,
+  label: string,
+  activeFilter: RepairStatusFilter,
+): string {
+  const isActive = activeFilter === filter;
+  const disabled = count === 0;
+  return `
+    <button
+      type="button"
+      class="repair-chip ${className}${isActive ? " is-active" : ""}"
+      data-repair-filter="${filter}"
+      aria-pressed="${isActive}"
+      ${disabled ? "disabled" : ""}
+    >
+      ${count} ${label}
+    </button>
+  `;
+}
+
+function renderRepairPreview(
+  report: RepairPreviewResponse,
+  activeFilter: RepairStatusFilter = "all",
+): string {
+  const summary = report.summary;
+  const visibleChecks =
+    activeFilter === "all"
+      ? report.checks
+      : report.checks.filter((check) => check.status === activeFilter);
+
+  const checks = visibleChecks
+    .map((check) => {
+      const statusClass = repairStatusClass(check.status);
+      const details = check.details.length
+        ? `<span class="repair-check-detail">${escapeHtml(check.details[0])}${check.details.length > 1 ? ` +${check.details.length - 1}` : ""}</span>`
+        : "";
+      return `
+        <li class="repair-check">
+          <span class="repair-check-status ${statusClass}">${escapeHtml(repairCheckStatusLabel(check.status))}</span>
+          <span class="repair-check-body">
+            <strong>${escapeHtml(check.title)}</strong>
+            <span>${escapeHtml(check.message)}</span>
+            ${details}
+          </span>
+        </li>
+      `;
+    })
+    .join("");
+
+  const summaryChips = [
+    { filter: "all" as const, count: report.checks.length, className: "all", label: t("repair.all") },
+    { filter: "pass" as const, count: summary.pass, className: "pass", label: t("repair.pass") },
+    { filter: "warn" as const, count: summary.warn, className: "warn", label: t("repair.warn") },
+    { filter: "fail" as const, count: summary.fail, className: "fail", label: t("repair.fail") },
+    {
+      filter: "not checked" as const,
+      count: summary.not_checked,
+      className: "muted",
+      label: t("repair.notChecked"),
+    },
+    {
+      filter: "n/a" as const,
+      count: summary.not_applicable,
+      className: "muted",
+      label: t("repair.notApplicable"),
+    },
+  ]
+    .filter((chip) => chip.filter === "all" || chip.count > 0)
+    .map((chip) =>
+      renderRepairSummaryChip(chip.filter, chip.count, chip.className, chip.label, activeFilter),
+    )
+    .join("");
+
+  const emptyList =
+    visibleChecks.length === 0
+      ? `<li class="repair-check repair-check-empty">${escapeHtml(t("repair.noMatches"))}</li>`
+      : "";
+
+  return `
+    <div class="repair-panel">
+      <div class="repair-panel-head">
+        <strong>${escapeHtml(report.display_name)}</strong>
+        <span>${t("runtime.diagnosisReady")}</span>
+      </div>
+      <div class="repair-summary" role="tablist" aria-label="${escapeHtml(t("repair.filterLabel"))}">
+        ${summaryChips}
+      </div>
+      <ul class="repair-checks">${checks}${emptyList}</ul>
+      <p class="repair-plan">${escapeHtml(report.plan_summary)}</p>
+    </div>
+  `;
+}
+
+function mountRepairPreview(hint: HTMLElement, report: RepairPreviewResponse): void {
+  const runtime = report.runtime_id;
+  repairPreviewByRuntime.set(runtime, report);
+  const filter = repairFilterByRuntime.get(runtime) ?? "all";
+  hint.innerHTML = renderRepairPreview(report, filter);
+}
+
+function applyRepairFilter(runtime: string, filter: RepairStatusFilter): void {
+  const report = repairPreviewByRuntime.get(runtime);
+  const card = runtimesEl.querySelector<HTMLElement>(`[data-runtime="${runtime}"]`);
+  const hint = card?.querySelector<HTMLElement>("[data-repair-hint]");
+  if (!report || !hint) {
+    return;
+  }
+  const current = repairFilterByRuntime.get(runtime) ?? "all";
+  const next = current === filter && filter !== "all" ? "all" : filter;
+  repairFilterByRuntime.set(runtime, next);
+  hint.innerHTML = renderRepairPreview(report, next);
+}
+
+function repairCheckStatusLabel(
+  status: RepairPreviewResponse["checks"][number]["status"],
+): string {
+  switch (status) {
+    case "pass":
+      return t("repair.pass");
+    case "warn":
+      return t("repair.warn");
+    case "fail":
+      return t("repair.fail");
+    case "n/a":
+      return t("repair.notApplicable");
+    case "not checked":
+      return t("repair.notChecked");
+    default:
+      return status;
+  }
+}
+
+function repairStatusClass(status: RepairPreviewResponse["checks"][number]["status"]): string {
+  if (status === "pass") {
+    return "pass";
+  }
+  if (status === "warn") {
+    return "warn";
+  }
+  if (status === "fail") {
+    return "fail";
+  }
+  return "muted";
+}
+
 function renderHermesCard(runtime: RuntimeDoctorResult): string {
   const model = hermesModel ?? {
     provider: "",
@@ -419,6 +590,7 @@ function renderHermesCard(runtime: RuntimeDoctorResult): string {
   const editButton = hermesEditing
     ? ""
     : `<button type="button" class="btn-ghost" data-action="edit-hermes">${t("runtime.edit")}</button>`;
+  const diagnoseButton = `<button type="button" class="btn-ghost" data-action="diagnose-runtime">${t("runtime.diagnose")}</button>`;
 
   const meta = hermesEditing
     ? [
@@ -468,11 +640,13 @@ function renderHermesCard(runtime: RuntimeDoctorResult): string {
       <div class="runtime-head runtime-head-compact">
         <p class="runtime-tab-title">${runtime.display_name}</p>
         <div class="runtime-actions">
+          ${diagnoseButton}
           ${editButton}
           <p class="badge ok">${t("runtime.installed")}</p>
         </div>
       </div>
       ${meta ? `<div class="meta-grid">${meta}</div>` : ""}
+      <div class="card-hint repair-hint" data-repair-hint hidden></div>
       ${actions}
     </article>
   `;
@@ -498,9 +672,13 @@ function renderRuntimeCard(runtime: RuntimeDoctorResult): string {
     <article class="runtime ${runtimeClass(runtime.id)}" data-runtime="${runtime.id}">
       <div class="runtime-head runtime-head-compact">
         <p class="runtime-tab-title">${runtime.display_name}</p>
-        <p class="badge ${badgeClass}">${state}</p>
+        <div class="runtime-actions">
+          <button type="button" class="btn-ghost" data-action="diagnose-runtime">${t("runtime.diagnose")}</button>
+          <p class="badge ${badgeClass}">${state}</p>
+        </div>
       </div>
       ${rows ? `<div class="meta-grid">${rows}</div>` : ""}
+      <div class="card-hint repair-hint" data-repair-hint hidden></div>
     </article>
   `;
 }
@@ -814,6 +992,27 @@ async function applyPreset() {
   }
 }
 
+async function diagnoseRuntimeCard(card: HTMLElement) {
+  const runtime = card.dataset.runtime;
+  const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
+  const button = card.querySelector<HTMLButtonElement>('[data-action="diagnose-runtime"]');
+  if (!runtime || !hint) {
+    return;
+  }
+  button?.setAttribute("disabled", "true");
+  hint.hidden = false;
+  hint.textContent = t("runtime.diagnosing");
+  try {
+    const report = await invoke<RepairPreviewResponse>("run_repair_preview_command", { runtime });
+    repairFilterByRuntime.set(runtime, "all");
+    mountRepairPreview(hint, report);
+  } catch (error) {
+    hint.textContent = String(error);
+  } finally {
+    button?.removeAttribute("disabled");
+  }
+}
+
 function readHermesDraft(card: HTMLElement): {
   provider: string;
   model: string;
@@ -883,8 +1082,25 @@ runtimesEl.addEventListener("change", (event) => {
 
 runtimesEl.addEventListener("click", (event) => {
   const target = event.target as HTMLElement;
+  const filterBtn = target.closest<HTMLButtonElement>("[data-repair-filter]");
+  if (filterBtn && !filterBtn.disabled) {
+    const card = filterBtn.closest<HTMLElement>("[data-runtime]");
+    const runtime = card?.dataset.runtime;
+    const filter = filterBtn.dataset.repairFilter as RepairStatusFilter | undefined;
+    if (runtime && filter) {
+      applyRepairFilter(runtime, filter);
+    }
+    return;
+  }
+
   const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
   if (!action) {
+    return;
+  }
+
+  const runtimeCard = target.closest<HTMLElement>("[data-runtime]");
+  if (action === "diagnose-runtime" && runtimeCard) {
+    void diagnoseRuntimeCard(runtimeCard);
     return;
   }
 

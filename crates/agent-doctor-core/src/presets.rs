@@ -134,8 +134,36 @@ pub fn profiles_path() -> Result<PathBuf> {
         .context("could not resolve config directory")
 }
 
+fn legacy_profiles_path() -> Result<PathBuf> {
+    dirs::config_dir()
+        .map(|dir| dir.join("agent-desk").join(PROFILES_FILE))
+        .context("could not resolve config directory")
+}
+
+fn migrate_legacy_profiles_if_needed(path: &PathBuf) -> Result<()> {
+    if path.exists() {
+        return Ok(());
+    }
+    let legacy_path = legacy_profiles_path()?;
+    if !legacy_path.exists() {
+        return Ok(());
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::copy(&legacy_path, path).with_context(|| {
+        format!(
+            "failed to migrate profiles from {} to {}",
+            legacy_path.display(),
+            path.display()
+        )
+    })?;
+    Ok(())
+}
+
 pub fn load_profiles() -> Result<ProfilesDocument> {
     let path = profiles_path()?;
+    migrate_legacy_profiles_if_needed(&path)?;
     if !path.exists() {
         return Ok(ProfilesDocument {
             active: None,
