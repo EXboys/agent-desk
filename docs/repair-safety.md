@@ -50,4 +50,23 @@ Teams can require:
 - High-risk actions disabled unless policy explicitly allows them.
 - Local audit reports for IT support or control-plane ingestion.
 
-The current `agent-doctor repair <runtime>` command runs read-only probes and prints the safe repair preview. Runtime-specific repair playbooks will build on this foundation.
+`agent-doctor repair <runtime>` runs read-only probes and prints the safe repair preview.
+
+`agent-doctor repair <runtime> --apply` runs the execute skeleton:
+
+1. `probe_runtime` (before)
+2. build repair plan from redacted facts
+3. backup runtime config files under `~/.config/agent-doctor/backups/`
+4. apply typed actions (rule playbooks still expanding; unimplemented actions are skipped)
+5. `probe_runtime` (after)
+6. write `AuditReport` with verification summary and rollback hint
+
+Runtime-specific rule playbooks extend step 4. Hermes v1 rules:
+
+- tighten `~/.hermes/.env` permissions to `600` when too open
+- deduplicate repeated API key env entries (keep last non-empty value)
+- fill missing/empty `model.*` fields from the active Agent Doctor profile preset
+
+API key values are never auto-filled; missing secrets remain manual review.
+
+The desktop app shows suggested fixes after diagnosis and can run `run_repair_execute_command` (backup → playbook → re-probe → audit).
