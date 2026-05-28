@@ -118,9 +118,11 @@ fn main() -> Result<()> {
                 base_url,
             } => commands::config::set(&runtime, provider, model, base_url)?,
         },
-        Commands::Repair { runtime, apply, json } => {
-            commands::repair::run(&runtime, apply, json)?
-        }
+        Commands::Repair {
+            runtime,
+            apply,
+            json,
+        } => commands::repair::run(&runtime, apply, json)?,
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {

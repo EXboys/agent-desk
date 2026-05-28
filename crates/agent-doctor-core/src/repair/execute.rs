@@ -5,13 +5,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::adapters::adapter_by_id;
-use crate::probe::{probe_runtime, ProbeStatus, RuntimeProbeReport};
 use super::playbooks::apply_hermes_playbook;
 use super::{
     build_repair_preview_from_bundle, AuditReport, BackupSnapshot, RedactionPolicy, Redactor,
     RepairAction, RepairActionKind, RepairPlan, SensitivityLevel, SnapshotFile,
 };
+use crate::adapters::adapter_by_id;
+use crate::probe::{probe_runtime, ProbeStatus, RuntimeProbeReport};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct RepairExecuteOptions {
@@ -38,7 +38,10 @@ pub struct RepairExecuteReport {
 }
 
 /// Run the repair pipeline: probe → plan → backup → apply actions → re-probe → audit.
-pub fn execute_repair(runtime_id: &str, options: &RepairExecuteOptions) -> Result<RepairExecuteReport> {
+pub fn execute_repair(
+    runtime_id: &str,
+    options: &RepairExecuteOptions,
+) -> Result<RepairExecuteReport> {
     let before_probe = probe_runtime(runtime_id)?;
     let plan = build_repair_preview_from_bundle(before_probe.to_diagnostic_bundle());
     let backup = create_runtime_backup_snapshot(runtime_id)?;
@@ -108,10 +111,9 @@ fn execute_planned_action(
     backup: &BackupSnapshot,
 ) -> ActionRunResult {
     match action.kind {
-        RepairActionKind::BackupFile => ActionRunResult::Skipped(format!(
-            "backup already created at {}",
-            backup.root
-        )),
+        RepairActionKind::BackupFile => {
+            ActionRunResult::Skipped(format!("backup already created at {}", backup.root))
+        }
         RepairActionKind::ManualReview => {
             ActionRunResult::Skipped("manual review is advisory only".to_string())
         }
@@ -135,9 +137,7 @@ fn execute_planned_action(
                     Err(error) => ActionRunResult::Skipped(error.to_string()),
                 }
             } else {
-                ActionRunResult::Skipped(
-                    "automatic PatchConfig is not implemented yet".to_string(),
-                )
+                ActionRunResult::Skipped("automatic PatchConfig is not implemented yet".to_string())
             }
         }
         RepairActionKind::RestoreBackup => ActionRunResult::Skipped(
@@ -196,13 +196,8 @@ pub fn snapshot_config_files(
             .map(|name| name.to_string_lossy().to_string())
             .unwrap_or_else(|| "config".to_string());
         let dest = snapshot_root.join(file_name);
-        fs::copy(path, &dest).with_context(|| {
-            format!(
-                "failed to copy {} to {}",
-                path.display(),
-                dest.display()
-            )
-        })?;
+        fs::copy(path, &dest)
+            .with_context(|| format!("failed to copy {} to {}", path.display(), dest.display()))?;
         files.push(SnapshotFile {
             original_path: path.display().to_string(),
             snapshot_path: dest.display().to_string(),
@@ -257,9 +252,7 @@ pub fn probe_health_summary(report: &RuntimeProbeReport) -> String {
         }
     }
 
-    format!(
-        "pass={pass} warn={warn} fail={fail} not_checked={not_checked} n/a={not_applicable}"
-    )
+    format!("pass={pass} warn={warn} fail={fail} not_checked={not_checked} n/a={not_applicable}")
 }
 
 fn unix_seconds() -> u64 {
@@ -291,8 +284,8 @@ mod tests {
 
     #[test]
     fn execute_repair_records_backup_without_apply_writes() {
-        let report = execute_repair("hermes", &RepairExecuteOptions::default())
-            .expect("execute repair");
+        let report =
+            execute_repair("hermes", &RepairExecuteOptions::default()).expect("execute repair");
         assert!(report.backup.runtime_id == "hermes");
         assert!(report.backup.root.contains("hermes"));
         assert!(report

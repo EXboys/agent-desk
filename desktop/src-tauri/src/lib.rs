@@ -102,7 +102,10 @@ fn run_repair_execute_command(runtime: String) -> Result<RepairPreviewResponse, 
     )
     .map_err(|error| error.to_string())?;
     let execute = RepairExecuteSummary::from(&result);
-    Ok(build_repair_preview_response(result.after_probe, Some(execute)))
+    Ok(build_repair_preview_response(
+        result.after_probe,
+        Some(execute),
+    ))
 }
 
 fn build_repair_preview_response(
@@ -111,8 +114,8 @@ fn build_repair_preview_response(
 ) -> RepairPreviewResponse {
     let plan = build_repair_preview_from_bundle(report.to_diagnostic_bundle());
     let suggested = suggest_runtime_repairs(&report.runtime_id, &report);
-    let can_apply_repair = report.runtime_id == "hermes"
-        || suggested.iter().any(|item| item.auto_fixable);
+    let can_apply_repair =
+        report.runtime_id == "hermes" || suggested.iter().any(|item| item.auto_fixable);
     let mut summary = RepairPreviewSummary::default();
     let checks = report
         .checks

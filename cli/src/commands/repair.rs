@@ -78,7 +78,11 @@ fn run_execute(runtime: &str, json: bool) -> Result<()> {
 
     println!("Agent Doctor — repair execute\n");
     println!("Runtime: {}", report.runtime_id);
-    println!("Backup: {} ({} file(s))", report.backup.root, report.backup.files.len());
+    println!(
+        "Backup: {} ({} file(s))",
+        report.backup.root,
+        report.backup.files.len()
+    );
     for file in &report.backup.files {
         println!("  - {} -> {}", file.original_path, file.snapshot_path);
     }

@@ -7,7 +7,7 @@ use serde_yaml::{Mapping, Value};
 use crate::adapters::util::home_join;
 use crate::presets::{load_profiles, HermesProfilePreset};
 use crate::probe::{ProbeStatus, RuntimeProbeReport};
-use crate::repair::{SuggestedRepair, SkippedRepairAction};
+use crate::repair::{SkippedRepairAction, SuggestedRepair};
 
 #[derive(Debug, Default)]
 pub struct PlaybookApplyResult {
@@ -74,7 +74,9 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
     for check in &probe.checks {
         if check.id.starts_with("hermes.env.permissions:") && check.status == ProbeStatus::Warn {
             match tighten_env_permissions() {
-                Ok(()) => result.executed.push("fix-hermes-env-permissions".to_string()),
+                Ok(()) => result
+                    .executed
+                    .push("fix-hermes-env-permissions".to_string()),
                 Err(error) => result.skipped.push(SkippedRepairAction {
                     id: "fix-hermes-env-permissions".to_string(),
                     reason: error.to_string(),
@@ -84,7 +86,9 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
 
         if check.id == "hermes.api_key.duplicates" && check.status == ProbeStatus::Warn {
             match dedupe_api_key_env(probe) {
-                Ok(()) => result.executed.push("fix-hermes-api-key-duplicates".to_string()),
+                Ok(()) => result
+                    .executed
+                    .push("fix-hermes-api-key-duplicates".to_string()),
                 Err(error) => result.skipped.push(SkippedRepairAction {
                     id: "fix-hermes-api-key-duplicates".to_string(),
                     reason: error.to_string(),
@@ -144,8 +148,8 @@ fn apply_hermes_config_from_profile() -> Result<()> {
     }
 
     let raw = fs::read_to_string(&path)?;
-    let mut root: Value =
-        serde_yaml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))?;
+    let mut root: Value = serde_yaml::from_str(&raw)
+        .with_context(|| format!("failed to parse {}", path.display()))?;
     let mapping = root
         .as_mapping_mut()
         .context("Hermes config root must be a mapping")?;
@@ -166,7 +170,10 @@ fn apply_hermes_config_from_profile() -> Result<()> {
         .and_then(Value::as_str)
     {
         if !url.starts_with("http://") && !url.starts_with("https://") {
-            model_map.insert(Value::from("base_url"), Value::from(preset.base_url.as_str()));
+            model_map.insert(
+                Value::from("base_url"),
+                Value::from(preset.base_url.as_str()),
+            );
             changed = true;
         }
     }
@@ -225,8 +232,8 @@ fn dedupe_api_key_env(probe: &RuntimeProbeReport) -> Result<()> {
         .context("missing hermes.api_key.env fact for duplicate cleanup")?;
 
     let path = hermes_env_path();
-    let raw = fs::read_to_string(&path)
-        .with_context(|| format!("failed to read {}", path.display()))?;
+    let raw =
+        fs::read_to_string(&path).with_context(|| format!("failed to read {}", path.display()))?;
     let updated = dedupe_env_key_lines(&raw, &env_key)?;
     if updated == raw {
         return Ok(());
@@ -252,7 +259,13 @@ pub fn dedupe_env_key_lines(raw: &str, key: &str) -> Result<String> {
             continue;
         };
         if name.trim() == key {
-            last_value = Some(value.trim().trim_matches('"').trim_matches('\'').to_string());
+            last_value = Some(
+                value
+                    .trim()
+                    .trim_matches('"')
+                    .trim_matches('\'')
+                    .to_string(),
+            );
             continue;
         }
         preserved.push(line.to_string());
@@ -289,9 +302,7 @@ mod tests {
         let mut model = Mapping::new();
         assert!(set_model_field(&mut model, "provider", "deepseek"));
         assert_eq!(
-            model
-                .get(Value::from("provider"))
-                .and_then(Value::as_str),
+            model.get(Value::from("provider")).and_then(Value::as_str),
             Some("deepseek")
         );
     }
