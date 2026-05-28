@@ -355,7 +355,7 @@ fn tighten_env_permissions() -> Result<()> {
         }
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600))
             .with_context(|| format!("failed to chmod 600 {}", path.display()))?;
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(unix))]

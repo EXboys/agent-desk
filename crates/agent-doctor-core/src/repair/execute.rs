@@ -282,7 +282,8 @@ mod tests {
         let snapshot_root = temp.path().join("snapshot");
         fs::create_dir_all(&snapshot_root).expect("mkdir");
 
-        let files = snapshot_config_files(&[source.clone()], &snapshot_root).expect("snapshot");
+        let files = snapshot_config_files(std::slice::from_ref(&source), &snapshot_root)
+            .expect("snapshot");
         assert_eq!(files.len(), 1);
         assert!(Path::new(&files[0].snapshot_path).exists());
     }
