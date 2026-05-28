@@ -1,8 +1,9 @@
 use agent_doctor_core::{
-    apply_profile_model, build_repair_preview_from_bundle, load_profiles, probe_runtime,
-    run_doctor, set_runtime_model, use_profile, ApplyReport, DoctorReport, HermesAdapter,
-    HermesProfilePreset, HermesSettings, ProbeStatus, ProfilesDocument, RuntimeModelPreset,
-    UseProfileReport,
+    apply_profile_model, build_repair_preview_from_bundle, execute_repair, load_profiles,
+    probe_runtime, run_doctor, set_runtime_model, suggest_runtime_repairs, use_profile,
+    ApplyReport, DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProbeStatus,
+    ProfilesDocument, RepairExecuteOptions, RepairExecuteReport, RuntimeModelPreset,
+    RuntimeProbeReport, UseProfileReport,
 };
 use serde::Serialize;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
@@ -88,7 +89,30 @@ fn apply_profile_model_command(
 #[tauri::command]
 fn run_repair_preview_command(runtime: String) -> Result<RepairPreviewResponse, String> {
     let report = probe_runtime(&runtime).map_err(|error| error.to_string())?;
+    Ok(build_repair_preview_response(report, None))
+}
+
+#[tauri::command]
+fn run_repair_execute_command(runtime: String) -> Result<RepairPreviewResponse, String> {
+    let result = execute_repair(
+        &runtime,
+        &RepairExecuteOptions {
+            apply_confirmed_writes: true,
+        },
+    )
+    .map_err(|error| error.to_string())?;
+    let execute = RepairExecuteSummary::from(&result);
+    Ok(build_repair_preview_response(result.after_probe, Some(execute)))
+}
+
+fn build_repair_preview_response(
+    report: RuntimeProbeReport,
+    last_execute: Option<RepairExecuteSummary>,
+) -> RepairPreviewResponse {
     let plan = build_repair_preview_from_bundle(report.to_diagnostic_bundle());
+    let suggested = suggest_runtime_repairs(&report.runtime_id, &report);
+    let can_apply_repair = report.runtime_id == "hermes"
+        || suggested.iter().any(|item| item.auto_fixable);
     let mut summary = RepairPreviewSummary::default();
     let checks = report
         .checks
@@ -109,13 +133,25 @@ fn run_repair_preview_command(runtime: String) -> Result<RepairPreviewResponse, 
             }
         })
         .collect();
-    Ok(RepairPreviewResponse {
+
+    RepairPreviewResponse {
         runtime_id: report.runtime_id,
         display_name: report.display_name,
         summary,
         checks,
         plan_summary: plan.summary,
-    })
+        suggested_repairs: suggested
+            .into_iter()
+            .map(|item| SuggestedRepairItem {
+                id: item.id,
+                title: item.title,
+                description: item.description,
+                auto_fixable: item.auto_fixable,
+            })
+            .collect(),
+        can_apply_repair,
+        last_execute,
+    }
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -136,12 +172,57 @@ struct RepairPreviewCheck {
 }
 
 #[derive(Debug, Serialize)]
+struct SuggestedRepairItem {
+    id: String,
+    title: String,
+    description: String,
+    auto_fixable: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct SkippedRepairItem {
+    id: String,
+    reason: String,
+}
+
+#[derive(Debug, Serialize)]
+struct RepairExecuteSummary {
+    backup_root: String,
+    executed: Vec<String>,
+    skipped: Vec<SkippedRepairItem>,
+    verification_summary: String,
+    rollback_hint: String,
+}
+
+impl From<&RepairExecuteReport> for RepairExecuteSummary {
+    fn from(report: &RepairExecuteReport) -> Self {
+        Self {
+            backup_root: report.backup.root.clone(),
+            executed: report.executed_action_ids.clone(),
+            skipped: report
+                .skipped_actions
+                .iter()
+                .map(|item| SkippedRepairItem {
+                    id: item.id.clone(),
+                    reason: item.reason.clone(),
+                })
+                .collect(),
+            verification_summary: report.audit.verification_summary.clone(),
+            rollback_hint: report.audit.rollback_hint.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
 struct RepairPreviewResponse {
     runtime_id: String,
     display_name: String,
     summary: RepairPreviewSummary,
     checks: Vec<RepairPreviewCheck>,
     plan_summary: String,
+    suggested_repairs: Vec<SuggestedRepairItem>,
+    can_apply_repair: bool,
+    last_execute: Option<RepairExecuteSummary>,
 }
 
 fn probe_status_label(status: ProbeStatus) -> &'static str {
@@ -206,7 +287,8 @@ pub fn run() {
             get_hermes_model_command,
             set_hermes_model_command,
             apply_profile_model_command,
-            run_repair_preview_command
+            run_repair_preview_command,
+            run_repair_execute_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

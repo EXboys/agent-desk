@@ -1,4 +1,15 @@
+mod execute;
+mod playbooks;
+mod suggested;
+
 use serde::{Deserialize, Serialize};
+
+pub use execute::{
+    execute_repair, probe_health_summary, RepairExecuteOptions, RepairExecuteReport,
+    SkippedRepairAction,
+};
+pub use playbooks::{suggest_hermes_repairs, suggest_runtime_repairs};
+pub use suggested::SuggestedRepair;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

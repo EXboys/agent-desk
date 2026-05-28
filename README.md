@@ -1,10 +1,39 @@
 # Agent Doctor
 
-**Diagnose, back up, and repair local AI agent runtimes.**
+**Diagnose, repair, and onboard local AI agent runtimes on one machine.**
 
-Agent Doctor helps developers and teams understand why Claude Code, Codex, OpenClaw, Hermes, and other local agent runtimes break, then safely repair them with redacted diagnostics, typed actions, backups, and audit reports.
+Agent Doctor discovers OpenClaw, Hermes, Claude Code, Codex, and related runtimes, runs redacted probes to find misconfiguration, and repairs them with backups, typed actions, and audit reports.
 
-[License: MIT](LICENSE)
+Use it standalone on a developer laptop, or connect an enterprise control plane when your team needs shared gateways, skills, and policy.
+
+```bash
+agent-doctor doctor                    # Diagnose: installed runtimes, config paths, gateway wiring
+agent-doctor repair hermes             # Repair: deep checks + safe repair preview (execution rolling out)
+agent-doctor setup --url ... --key ... # Onboard: apply company profile to runtimes (planned)
+```
+
+[License: MIT](LICENSE) · [Roadmap](docs/ROADMAP.md) · [Repair safety](docs/repair-safety.md)
+
+---
+
+## Enterprise (optional)
+
+With a control plane (e.g. [Evotown](https://github.com/EXboys/evotown)):
+
+```bash
+agent-doctor sync          # Pull private skill bundle (planned)
+agent-doctor policy pull   # Cache policy rules locally (planned)
+```
+
+See [docs/enterprise.md](docs/enterprise.md).
+
+---
+
+## Status
+
+🚧 **Early MVP** — `agent-doctor doctor`, read-only `repair` probes, and a Tauri menubar shell. P0 next: `repair` execution and `setup`. See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+Diagnostic data is classified by sensitivity; secrets are redacted before AI analysis. Real writes require typed actions, backups, and confirmation — [docs/repair-safety.md](docs/repair-safety.md).
 
 ---
 
@@ -41,37 +70,6 @@ Each runtime has its own install path, gateway settings, skills manifest, policy
    OpenClaw · Hermes · Claude Code · Codex
 ```
 
-Teams can plug in an enterprise control plane (e.g. [Evotown](https://github.com/EXboys/evotown)) for gateway keys, SkillHub, policy, compliance checks, and audit workflows — see [docs/enterprise.md](docs/enterprise.md).
-
----
-
-## Status
-
-🚧 **Early MVP** — Rust workspace + `agent-doctor doctor` + Tauri menubar shell. See [docs/ROADMAP.md](docs/ROADMAP.md) for remaining P0 items (`repair`, `setup`, `sync`, `policy pull`).
-
-Repair safety and compliance are part of the product surface: diagnostic data is classified by sensitivity, secrets are redacted before AI analysis, and real repair execution must use typed actions with backups and audit reports. See [docs/repair-safety.md](docs/repair-safety.md).
-
----
-
-## Planned commands
-
-```bash
-# Discover installed runtimes, config paths, gateway wiring, and drift
-agent-doctor doctor
-
-# Back up, diagnose, and repair a broken or non-compliant runtime
-agent-doctor repair openclaw
-
-# Apply company profile (URL + API key + per-runtime config)
-agent-doctor setup --url https://gateway.company.internal --key ...
-
-# Pull private skill bundle from control plane
-agent-doctor sync
-
-# Cache policies from control plane
-agent-doctor policy pull
-```
-
 ---
 
 ## Relationship to other tools
@@ -88,9 +86,15 @@ agent-doctor policy pull
 
 ## 中文
 
-**Agent Doctor（企业本机 Agent 诊断、修复与合规工具）** 用于在员工电脑上**发现**已安装的 OpenClaw、Hermes、Claude Code、Codex 等，**备份配置、诊断故障、修复运行时**，并验证团队网关、Skill 和 policy 配置是否合规。
+**Agent Doctor** 在本机 **诊断、修复、就位** AI Agent Runtime（OpenClaw、Hermes、Claude Code、Codex 等）。
 
-详见 [docs/zh-CN/README.md](docs/zh-CN/README.md)。企业控制面集成（可选）见 [docs/enterprise.md](docs/enterprise.md)。
+```bash
+agent-doctor doctor                    # 诊断
+agent-doctor repair hermes             # 修复（深度检查 + 安全预览，执行能力逐步开放）
+agent-doctor setup --url ... --key ... # 就位（规划中）
+```
+
+企业可选：`sync`、`policy pull` — 见 [docs/enterprise.md](docs/enterprise.md)。完整中文说明：[docs/zh-CN/README.md](docs/zh-CN/README.md)。
 
 ---
 

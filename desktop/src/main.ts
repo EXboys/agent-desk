@@ -6,6 +6,7 @@ import {
   setLocale,
   t,
   type Locale,
+  type MessageKey,
 } from "./i18n";
 
 interface RuntimeDoctorResult {
@@ -75,6 +76,20 @@ interface RepairPreviewResponse {
     details: string[];
   }>;
   plan_summary: string;
+  suggested_repairs: Array<{
+    id: string;
+    title: string;
+    description: string;
+    auto_fixable: boolean;
+  }>;
+  can_apply_repair: boolean;
+  last_execute: {
+    backup_root: string;
+    executed: string[];
+    skipped: Array<{ id: string; reason: string }>;
+    verification_summary: string;
+    rollback_hint: string;
+  } | null;
 }
 
 const statusEl = document.querySelector<HTMLElement>("#status")!;
@@ -510,6 +525,43 @@ function renderRepairPreview(
       ? `<li class="repair-check repair-check-empty">${escapeHtml(t("repair.noMatches"))}</li>`
       : "";
 
+  const suggested = report.suggested_repairs.length
+    ? `
+      <div class="repair-suggested">
+        <p class="repair-suggested-title">${escapeHtml(t("repair.suggestedTitle"))}</p>
+        <ul class="repair-suggested-list">
+          ${report.suggested_repairs
+            .map(
+              (item) => `
+            <li class="repair-suggested-item">
+              <span class="repair-suggested-badge ${item.auto_fixable ? "ok" : "muted"}">${
+                item.auto_fixable ? t("repair.autoFixable") : t("repair.manualOnly")
+              }</span>
+              <span class="repair-suggested-body">
+                <strong>${escapeHtml(item.title)}</strong>
+                <span>${escapeHtml(item.description)}</span>
+              </span>
+            </li>
+          `,
+            )
+            .join("")}
+        </ul>
+      </div>
+    `
+    : "";
+
+  const applyButton = report.can_apply_repair
+    ? `<button type="button" class="btn-secondary repair-apply-btn" data-action="apply-repair">${t("repair.applyFixes")}</button>`
+    : "";
+
+  const executeResult = report.last_execute
+    ? renderRepairExecuteResult(report.last_execute)
+    : "";
+
+  const planLine = report.last_execute
+    ? ""
+    : `<p class="repair-plan">${escapeHtml(report.plan_summary)}</p>`;
+
   return `
     <div class="repair-panel">
       <div class="repair-panel-head">
@@ -520,9 +572,74 @@ function renderRepairPreview(
         ${summaryChips}
       </div>
       <ul class="repair-checks">${checks}${emptyList}</ul>
-      <p class="repair-plan">${escapeHtml(report.plan_summary)}</p>
+      ${suggested}
+      <div class="repair-panel-actions">${applyButton}</div>
+      ${executeResult}
+      ${planLine}
     </div>
   `;
+}
+
+const REPAIR_FIX_LABEL_KEYS: Record<string, string> = {
+  "backup-runtime-configs": "repair.fix.backup",
+  "fix-hermes-env-permissions": "repair.fix.envPermissions",
+  "fix-hermes-api-key-duplicates": "repair.fix.apiKeyDedupe",
+  "fix-hermes-config-from-profile": "repair.fix.configFromProfile",
+};
+
+function repairFixLabel(actionId: string): string {
+  const key = REPAIR_FIX_LABEL_KEYS[actionId];
+  return key ? t(key as MessageKey) : actionId;
+}
+
+function renderRepairExecuteResult(
+  execute: NonNullable<RepairPreviewResponse["last_execute"]>,
+): string {
+  const playbookExecuted = execute.executed.filter((id) => id.startsWith("fix-"));
+  const hasBackup = execute.executed.includes("backup-runtime-configs");
+
+  const executedLines = execute.executed.map((id) => repairFixLabel(id));
+
+  const outcome =
+    playbookExecuted.length === 0 && execute.skipped.length === 0
+      ? `<p class="repair-execute-ok">${escapeHtml(t("repair.nothingToFix"))}</p>`
+      : "";
+
+  const executedBlock =
+    executedLines.length > 0
+      ? `<p><strong>${escapeHtml(t("repair.executed"))}:</strong> ${escapeHtml(executedLines.join("、"))}</p>`
+      : "";
+
+  const skippedBlock =
+    execute.skipped.length > 0
+      ? `<p><strong>${escapeHtml(t("repair.skipped"))}:</strong> ${escapeHtml(
+          execute.skipped.map((item) => `${repairFixLabel(item.id)} (${item.reason})`).join("；"),
+        )}</p>`
+      : "";
+
+  const verify = formatVerificationSummary(execute.verification_summary);
+
+  return `
+    <div class="repair-execute-result">
+      ${
+        hasBackup
+          ? `<p class="repair-execute-backup">${escapeHtml(t("repair.applyResult", { backup: execute.backup_root }))}</p>`
+          : ""
+      }
+      ${outcome}
+      ${executedBlock}
+      ${skippedBlock}
+      <p class="repair-verify"><strong>${escapeHtml(t("repair.verifyTitle"))}:</strong> ${escapeHtml(verify)}</p>
+    </div>
+  `;
+}
+
+function formatVerificationSummary(summary: string): string {
+  const match = summary.match(/^before:\s*(.+?);\s*after:\s*(.+)$/);
+  if (!match) {
+    return summary;
+  }
+  return `${match[1]} → ${match[2]}`;
 }
 
 function mountRepairPreview(hint: HTMLElement, report: RepairPreviewResponse): void {
@@ -992,6 +1109,33 @@ async function applyPreset() {
   }
 }
 
+async function applyRepairRuntimeCard(card: HTMLElement) {
+  const runtime = card.dataset.runtime;
+  const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
+  const diagnoseButton = card.querySelector<HTMLButtonElement>('[data-action="diagnose-runtime"]');
+  const applyButton = card.querySelector<HTMLButtonElement>('[data-action="apply-repair"]');
+  if (!runtime || !hint) {
+    return;
+  }
+  diagnoseButton?.setAttribute("disabled", "true");
+  applyButton?.setAttribute("disabled", "true");
+  hint.hidden = false;
+  hint.textContent = t("repair.applying");
+  try {
+    const report = await invoke<RepairPreviewResponse>("run_repair_execute_command", { runtime });
+    repairFilterByRuntime.set(runtime, "all");
+    mountRepairPreview(hint, report);
+    if (runtime === "hermes") {
+      await loadHermesModel();
+    }
+  } catch (error) {
+    hint.textContent = String(error);
+  } finally {
+    diagnoseButton?.removeAttribute("disabled");
+    applyButton?.removeAttribute("disabled");
+  }
+}
+
 async function diagnoseRuntimeCard(card: HTMLElement) {
   const runtime = card.dataset.runtime;
   const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
@@ -1101,6 +1245,11 @@ runtimesEl.addEventListener("click", (event) => {
   const runtimeCard = target.closest<HTMLElement>("[data-runtime]");
   if (action === "diagnose-runtime" && runtimeCard) {
     void diagnoseRuntimeCard(runtimeCard);
+    return;
+  }
+
+  if (action === "apply-repair" && runtimeCard) {
+    void applyRepairRuntimeCard(runtimeCard);
     return;
   }
 

@@ -32,10 +32,16 @@ enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
-    /// Back up, diagnose, and repair a runtime (not yet implemented)
+    /// Back up, diagnose, and repair a runtime
     Repair {
         /// Runtime id (e.g. openclaw, hermes, claude-code, codex)
         runtime: String,
+        /// Execute backup, typed actions, re-probe verification, and write audit metadata
+        #[arg(long)]
+        apply: bool,
+        /// Emit JSON (only with --apply)
+        #[arg(long)]
+        json: bool,
     },
     /// Apply company profile (not yet implemented)
     Setup {
@@ -112,7 +118,9 @@ fn main() -> Result<()> {
                 base_url,
             } => commands::config::set(&runtime, provider, model, base_url)?,
         },
-        Commands::Repair { runtime } => commands::repair::run(&runtime)?,
+        Commands::Repair { runtime, apply, json } => {
+            commands::repair::run(&runtime, apply, json)?
+        }
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {

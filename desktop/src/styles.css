@@ -1004,6 +1004,115 @@ body::before {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
+.repair-suggested {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.repair-suggested-title {
+  margin: 0 0 5px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.repair-suggested-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.repair-suggested-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px;
+  align-items: start;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.repair-suggested-badge {
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.repair-suggested-badge.ok {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.repair-suggested-badge.muted {
+  background: var(--surface-inset);
+  color: var(--text-soft);
+}
+
+.repair-suggested-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.66rem;
+}
+
+.repair-suggested-body strong {
+  font-size: 0.68rem;
+  color: var(--text);
+}
+
+.repair-suggested-body span {
+  color: var(--text-muted);
+}
+
+.repair-panel-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.repair-apply-btn {
+  font-size: 0.68rem;
+  padding: 5px 10px;
+}
+
+.repair-execute-result {
+  margin-top: 8px;
+  padding: 7px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.repair-execute-result p {
+  margin: 0 0 4px;
+}
+
+.repair-execute-ok {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.repair-execute-backup {
+  word-break: break-all;
+}
+
+.repair-execute-result p:last-child {
+  margin-bottom: 0;
+}
+
+.repair-verify {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  color: var(--text-soft);
+}
+
 .repair-plan {
   margin: 8px 0 0;
   color: var(--text-soft);
