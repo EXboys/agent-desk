@@ -1,4 +1,4 @@
-use agent_desk_core::{
+use agent_doctor_core::{
     apply_profile_model, load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport,
     DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProfilesDocument,
     RuntimeModelPreset, UseProfileReport,
@@ -91,7 +91,7 @@ pub fn run() {
             use tauri::menu::{Menu, MenuItem};
             use tauri::tray::TrayIconBuilder;
 
-            let show_i = MenuItem::with_id(app, "show", "Show Agent Desk", true, None::<&str>)?;
+            let show_i = MenuItem::with_id(app, "show", "Show Agent Doctor", true, None::<&str>)?;
             let doctor_i = MenuItem::with_id(app, "doctor", "Run doctor", true, None::<&str>)?;
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_i, &doctor_i, &quit_i])?;
@@ -100,7 +100,7 @@ pub fn run() {
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .show_menu_on_left_click(false)
-                .tooltip("Agent Desk")
+                .tooltip("Agent Doctor")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show_main_window(app),
                     "doctor" => {

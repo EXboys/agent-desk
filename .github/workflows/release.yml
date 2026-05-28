@@ -23,22 +23,22 @@ jobs:
             target: aarch64-apple-darwin
             name: macos-arm64
             archive: tar.gz
-            bin: agent-desk
+            bin: agent-doctor
           - os: macos-latest
             target: x86_64-apple-darwin
             name: macos-x86_64
             archive: tar.gz
-            bin: agent-desk
+            bin: agent-doctor
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             name: linux-x86_64
             archive: tar.gz
-            bin: agent-desk
+            bin: agent-doctor
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             name: windows-x86_64
             archive: zip
-            bin: agent-desk.exe
+            bin: agent-doctor.exe
 
     steps:
       - uses: actions/checkout@v4
@@ -50,14 +50,14 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: Build CLI
-        run: cargo build --release -p agent-desk --target ${{ matrix.target }}
+        run: cargo build --release -p agent-doctor --target ${{ matrix.target }}
 
       - name: Package CLI (Unix)
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          OUT="agent-desk-${VERSION}-${{ matrix.name }}"
+          OUT="agent-doctor-${VERSION}-${{ matrix.name }}"
           mkdir -p dist
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" dist/
           tar -C dist -czf "${OUT}.tar.gz" "${{ matrix.bin }}"
@@ -67,7 +67,7 @@ jobs:
         shell: pwsh
         run: |
           $version = $env:GITHUB_REF_NAME -replace '^v',''
-          $out = "agent-desk-$version-${{ matrix.name }}"
+          $out = "agent-doctor-$version-${{ matrix.name }}"
           New-Item -ItemType Directory -Force -Path dist | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.bin }}" dist/
           Compress-Archive -Path "dist/${{ matrix.bin }}" -DestinationPath "$out.zip"
@@ -76,8 +76,8 @@ jobs:
         with:
           name: cli-${{ matrix.name }}
           path: |
-            agent-desk-*.tar.gz
-            agent-desk-*.zip
+            agent-doctor-*.tar.gz
+            agent-doctor-*.zip
 
   build-desktop:
     name: Desktop (${{ matrix.platform }})
@@ -126,13 +126,46 @@ jobs:
         run: npm ci
         working-directory: desktop
 
+      - name: Import Apple Developer certificate (macOS)
+        if: matrix.platform == 'macos-latest'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          if [ -z "$APPLE_CERTIFICATE" ]; then echo "APPLE_CERTIFICATE not set, skipping signing"; exit 0; fi
+          echo "$APPLE_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security set-keychain-settings -t 3600 -u build.keychain
+          security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/dev/null 2>&1
+          rm -f certificate.p12
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          SIGNING_IDENTITY="$APPLE_SIGNING_IDENTITY_SECRET"
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/Developer ID Application/ { print $2; exit }')
+          fi
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/"/ { print $2; exit }')
+          fi
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "::error::No codesigning identity found in build.keychain after importing APPLE_CERTIFICATE."
+            security find-identity -v -p codesigning build.keychain | sed 's/"[^"]*"/"[redacted]"/g'
+            exit 1
+          fi
+          echo "APPLE_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> $GITHUB_ENV
+          echo "Signing identity configured (identity not logged)."
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           projectPath: desktop
           tagName: ${{ github.ref_name }}
-          releaseName: Agent Desk ${{ github.ref_name }}
+          releaseName: Agent Doctor ${{ github.ref_name }}
           releaseBody: |
             ## Downloads
 
@@ -140,7 +173,7 @@ jobs:
             Use [GitHub CLI](https://cli.github.com/) to download the binary for your platform:
 
             ```bash
-            gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --pattern 'agent-desk-*'
+            gh release download ${{ github.ref_name }} --repo ${{ github.repository }} --pattern 'agent-doctor-*'
             ```
 
             See [docs/install.md](https://github.com/${{ github.repository }}/blob/main/docs/install.md) for install examples.
@@ -167,7 +200,7 @@ jobs:
           gh release view "${GITHUB_REF_NAME}" --repo "${GITHUB_REPOSITORY}" || \
           gh release create "${GITHUB_REF_NAME}" \
             --repo "${GITHUB_REPOSITORY}" \
-            --title "Agent Desk ${GITHUB_REF_NAME}" \
+            --title "Agent Doctor ${GITHUB_REF_NAME}" \
             --notes "Release assets are uploading. See docs/install.md for install steps."
 
       - name: Upload CLI archives to release

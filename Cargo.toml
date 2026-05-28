@@ -1,15 +1,15 @@
 [workspace]
 resolver = "2"
-members = ["crates/agent-desk-core", "cli", "desktop/src-tauri"]
+members = ["crates/agent-doctor-core", "cli", "desktop/src-tauri"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
-authors = ["Agent Desk Contributors"]
+authors = ["Agent Doctor Contributors"]
 
 [workspace.dependencies]
-agent-desk-core = { path = "crates/agent-desk-core" }
+agent-doctor-core = { path = "crates/agent-doctor-core" }
 anyhow = "1"
 clap = { version = "4", features = ["derive"] }
 dirs = "6"

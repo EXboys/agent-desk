@@ -1,12 +1,12 @@
-# Agent Desk
+# Agent Doctor
 
-**Manage desktop AI agents on one machine** — discover what's installed, where configs live, and apply a company profile in one command.
+**Diagnose, back up, and repair local AI agent runtimes** — find broken installs, inspect config drift, and restore agents to a known-good state.
 
 [License: MIT](LICENSE)
 
 ---
 
-## Why Agent Desk?
+## Why Agent Doctor?
 
 Developers often run **several** local agents at once:
 
@@ -19,18 +19,20 @@ Developers often run **several** local agents at once:
 | Codex CLI                                                     | `~/.codex/config.toml`      |
 
 
-Each tool has its own install path, gateway settings, and skills manifest. Agent Desk gives you **one** place to answer:
+Each tool has its own install path, gateway settings, skills manifest, and failure modes. Agent Doctor gives you **one** place to answer:
 
 - What is installed on this laptop?
 - Where do configs live?
 - Are runtimes pointed at the right gateway?
-- Can we apply or verify a team profile before agents run?
+- Why did this agent stop working?
+- What needs to be backed up before repair?
+- Can we verify or restore a team profile before agents run?
 
 ```text
   Your laptop
  ┌─────────────────────────┐
- │ Agent Desk              │
- │ doctor · setup · sync   │
+ │ Agent Doctor            │
+ │ doctor · repair · setup │
  └───────────┬─────────────┘
              │
    OpenClaw · Hermes · Claude Code · Codex
@@ -42,7 +44,7 @@ Optional: teams can plug in an enterprise control plane (e.g. [Evotown](https://
 
 ## Status
 
-🚧 **Early MVP** — Rust workspace + `agent-desk doctor` + Tauri menubar shell. See [docs/ROADMAP.md](docs/ROADMAP.md) for remaining P0 items (`setup`, `sync`, `policy pull`).
+🚧 **Early MVP** — Rust workspace + `agent-doctor doctor` + Tauri menubar shell. See [docs/ROADMAP.md](docs/ROADMAP.md) for remaining P0 items (`repair`, `setup`, `sync`, `policy pull`).
 
 ---
 
@@ -50,16 +52,19 @@ Optional: teams can plug in an enterprise control plane (e.g. [Evotown](https://
 
 ```bash
 # Discover installed runtimes, config paths, gateway wiring
-agent-desk doctor
+agent-doctor doctor
+
+# Back up, diagnose, and repair a broken runtime
+agent-doctor repair openclaw
 
 # Apply company profile (URL + API key + per-runtime config)
-agent-desk setup --url https://gateway.company.internal --key ...
+agent-doctor setup --url https://gateway.company.internal --key ...
 
 # Pull private skill bundle from control plane
-agent-desk sync
+agent-doctor sync
 
 # Cache policies from control plane
-agent-desk policy pull
+agent-doctor policy pull
 ```
 
 ---
@@ -71,14 +76,14 @@ agent-desk policy pull
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | **[ClawPanel](https://github.com/qingchencloud/clawpanel)** | Rich GUI for OpenClaw + Hermes                                                |
 | **[ClawPal](https://github.com/lay2dev/clawpal)**           | OpenClaw desktop config companion                                             |
-| **Agent Desk**                                              | **Cross-runtime local discovery + profile setup** (not a replacement runtime) |
+| **Agent Doctor**                                             | **Cross-runtime diagnosis, backup, repair, and team profile verification** |
 
 
 ---
 
 ## 中文
 
-**Agent Desk（本机 Agent 工作台）** 用于在同一台电脑上**发现**已安装的 OpenClaw、Hermes、Claude Code、Codex 等，**查看配置路径**，并**一键应用**团队网关/Skill 配置模板。
+**Agent Doctor（本机 Agent 诊断与修复工具）** 用于在同一台电脑上**发现**已安装的 OpenClaw、Hermes、Claude Code、Codex 等，**备份配置、诊断故障、修复运行时**，并验证团队网关/Skill 配置模板。
 
 详见 [docs/zh-CN/README.md](docs/zh-CN/README.md)。企业控制面集成（可选）见 [docs/enterprise.md](docs/enterprise.md)。
 
@@ -88,7 +93,7 @@ agent-desk policy pull
 
 ```bash
 # CLI
-cargo run -p agent-desk -- doctor
+cargo run -p agent-doctor -- doctor
 
 # Local CI checks (fmt / clippy / test)
 make check
@@ -102,13 +107,13 @@ See [docs/development.md](docs/development.md), [docs/ROADMAP.md](docs/ROADMAP.m
 
 ## Install
 
-Prebuilt CLI and desktop bundles are published to [GitHub Releases](https://github.com/EXboys/agent-desk/releases).
+Prebuilt CLI and desktop bundles are published to [GitHub Releases](https://github.com/EXboys/agent-doctor/releases).
 
 ```bash
 # Latest CLI (pick the pattern for your OS — see docs/install.md)
-gh release download --repo EXboys/agent-desk --pattern 'agent-desk-*-macos-arm64.tar.gz'
-tar -xzf agent-desk-*-macos-arm64.tar.gz && chmod +x agent-desk
-./agent-desk doctor
+gh release download --repo EXboys/agent-doctor --pattern 'agent-doctor-*-macos-arm64.tar.gz'
+tar -xzf agent-doctor-*-macos-arm64.tar.gz && chmod +x agent-doctor
+./agent-doctor doctor
 ```
 
 ## License

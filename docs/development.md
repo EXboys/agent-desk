@@ -7,13 +7,13 @@ The workspace includes **CLI crates** and a **Tauri desktop crate**. On Linux, t
 ### Model presets (Hermes)
 
 ```bash
-agent-desk profile init          # create ~/.config/agent-desk/profiles.yaml
-agent-desk profile list
-agent-desk profile use work      # writes Hermes config + backup
-agent-desk config show hermes
+agent-doctor profile init          # create ~/.config/agent-doctor/profiles.yaml
+agent-doctor profile list
+agent-doctor profile use work      # writes Hermes config + backup
+agent-doctor config show hermes
 ```
 
-Edit `~/.config/agent-desk/profiles.yaml` to add your own presets. Example: [profiles.example.yaml](../examples/profiles.example.yaml).
+Edit `~/.config/agent-doctor/profiles.yaml` to add your own presets. Example: [profiles.example.yaml](../examples/profiles.example.yaml).
 
 ### Quick commands
 
@@ -49,7 +49,7 @@ cargo test-cli    # test core + CLI
 
 ## Linux: desktop Rust builds
 
-If you see `Package 'glib-2.0' not found` when building `agent-desk-desktop`:
+If you see `Package 'glib-2.0' not found` when building `agent-doctor-desktop`:
 
 ```bash
 sudo apt-get update
@@ -64,15 +64,15 @@ sudo apt-get install -y \
 Then:
 
 ```bash
-AGENT_DESK_CHECK_DESKTOP=1 ./scripts/check.sh desktop
+AGENT_DOCTOR_CHECK_DESKTOP=1 ./scripts/check.sh desktop
 ```
 
 ## CI layout
 
 | Job | Runner | Scope |
 |-----|--------|-------|
-| `rust-cli` | ubuntu-latest | fmt, clippy, test, build for `agent-desk-core` + `agent-desk` |
-| `rust-desktop` | macos-latest | clippy for `agent-desk-desktop` |
+| `rust-cli` | ubuntu-latest | fmt, clippy, test, build for `agent-doctor-core` + `agent-doctor` |
+| `rust-desktop` | macos-latest | clippy for `agent-doctor-desktop` |
 | `desktop-frontend` | ubuntu-latest | `npm ci && npm run build` |
 
 Release builds install Linux GUI dependencies only in the desktop release job.

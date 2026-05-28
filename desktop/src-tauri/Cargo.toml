@@ -1,20 +1,20 @@
 [package]
-name = "agent-desk-desktop"
-description = "Agent Desk menubar companion"
+name = "agent-doctor-desktop"
+description = "Agent Doctor menubar companion"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 authors.workspace = true
 
 [lib]
-name = "agent_desk_desktop_lib"
+name = "agent_doctor_desktop_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-agent-desk-core.workspace = true
+agent-doctor-core.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tauri = { version = "2", features = ["tray-icon", "image-png"] }

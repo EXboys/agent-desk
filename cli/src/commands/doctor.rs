@@ -1,4 +1,4 @@
-use agent_desk_core::run_doctor;
+use agent_doctor_core::run_doctor;
 use anyhow::Result;
 
 pub fn run(json: bool) -> Result<()> {
@@ -9,7 +9,7 @@ pub fn run(json: bool) -> Result<()> {
         return Ok(());
     }
 
-    println!("Agent Desk — doctor\n");
+    println!("Agent Doctor — doctor\n");
 
     if let Some(path) = &report.profile_env_path {
         let status = if report.profile_env_exists {
@@ -25,7 +25,7 @@ pub fn run(json: bool) -> Result<()> {
     if let Some(active) = &report.active_preset {
         println!("Active preset: {active}");
     } else {
-        println!("Active preset: (none) — run `agent-desk profile init`");
+        println!("Active preset: (none) — run `agent-doctor profile init`");
     }
 
     println!();

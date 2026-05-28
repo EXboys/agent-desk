@@ -1,4 +1,4 @@
-use agent_desk_core::{
+use agent_doctor_core::{
     init_example_profiles, load_profiles, profiles_path, use_profile, UseProfileReport,
 };
 use anyhow::Result;
@@ -9,7 +9,7 @@ pub fn list() -> Result<()> {
 
     if doc.profiles.is_empty() {
         println!("No profiles configured.");
-        println!("Create one with: agent-desk profile init");
+        println!("Create one with: agent-doctor profile init");
         println!("Expected file: {}", path.display());
         return Ok(());
     }
@@ -48,9 +48,9 @@ pub fn init() -> Result<()> {
     let path = init_example_profiles()?;
     println!("Created example profiles at {}", path.display());
     println!("\nTry:");
-    println!("  agent-desk profile list");
-    println!("  agent-desk profile use local    # Ollama @ 127.0.0.1:11434, no API key");
-    println!("  agent-desk profile use work");
+    println!("  agent-doctor profile list");
+    println!("  agent-doctor profile use local    # Ollama @ 127.0.0.1:11434, no API key");
+    println!("  agent-doctor profile use work");
     Ok(())
 }
 

@@ -1,13 +1,13 @@
 export type Locale = "en" | "zh";
 
-const STORAGE_KEY = "agent-desk-locale";
+const STORAGE_KEY = "agent-doctor-locale";
 
 const messages = {
   en: {
-    "app.eyebrow": "Agent Desk",
-    "app.title": "Local agent health",
-    "app.subtitle": "Desktop agent diagnostics",
-    "app.footer": "Local runtime discovery · config · health checks",
+    "app.eyebrow": "Agent Doctor",
+    "app.title": "Local agent doctor",
+    "app.subtitle": "Diagnostics and repair prep",
+    "app.footer": "Runtime discovery · backups · repair checks",
     "health.ready": "Ready",
     "health.scanning": "Scanning…",
     "health.good": "All runtimes healthy",
@@ -20,7 +20,7 @@ const messages = {
     "presets.loading": "Loading presets…",
     "presets.switch": "Switch",
     "presets.none": "No presets yet",
-    "presets.noneHint": "Run: agent-desk profile init",
+    "presets.noneHint": "Run: agent-doctor profile init",
     "presets.active": "Active preset: {name}",
     "presets.noActive": "No active preset selected",
     "presets.switchHint": "Switch scene defaults for Hermes. Edit the model in the Hermes card.",
@@ -68,10 +68,10 @@ const messages = {
     "lang.zh": "中文",
   },
   zh: {
-    "app.eyebrow": "Agent Desk",
-    "app.title": "本机 Agent 状态",
-    "app.subtitle": "桌面 Agent 诊断工具",
-    "app.footer": "本机 Runtime 发现 · 配置 · 健康检查",
+    "app.eyebrow": "Agent Doctor",
+    "app.title": "本机 Agent 医生",
+    "app.subtitle": "诊断与修复准备",
+    "app.footer": "Runtime 发现 · 备份 · 修复检查",
     "health.ready": "就绪",
     "health.scanning": "扫描中…",
     "health.good": "Runtime 状态正常",
@@ -84,7 +84,7 @@ const messages = {
     "presets.loading": "正在加载预设…",
     "presets.switch": "切换",
     "presets.none": "暂无预设",
-    "presets.noneHint": "运行：agent-desk profile init",
+    "presets.noneHint": "运行：agent-doctor profile init",
     "presets.active": "当前预设：{name}",
     "presets.noActive": "未选择预设",
     "presets.switchHint": "切换场景默认配置。具体模型在 Hermes 卡片里编辑。",

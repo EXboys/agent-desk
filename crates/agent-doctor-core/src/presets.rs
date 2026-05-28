@@ -130,7 +130,7 @@ pub struct UseProfileReport {
 
 pub fn profiles_path() -> Result<PathBuf> {
     dirs::config_dir()
-        .map(|dir| dir.join("agent-desk").join(PROFILES_FILE))
+        .map(|dir| dir.join("agent-doctor").join(PROFILES_FILE))
         .context("could not resolve config directory")
 }
 

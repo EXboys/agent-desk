@@ -1,4 +1,4 @@
-use agent_desk_core::{adapter_by_id, set_runtime_model, show_config, RuntimeModelPreset};
+use agent_doctor_core::{adapter_by_id, set_runtime_model, show_config, RuntimeModelPreset};
 use anyhow::{Context, Result};
 
 pub fn show(runtime: &str, json: bool) -> Result<()> {

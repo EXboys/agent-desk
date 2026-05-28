@@ -1,9 +1,9 @@
-# Install Agent Desk
+# Install Agent Doctor
 
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) for downloading release assets
-- Or download files manually from [Releases](https://github.com/EXboys/agent-desk/releases)
+- Or download files manually from [Releases](https://github.com/EXboys/agent-doctor/releases)
 
 ## CLI
 
@@ -11,47 +11,47 @@ Pick the archive that matches your OS and CPU:
 
 | Asset pattern | Platform |
 |---------------|----------|
-| `agent-desk-*-macos-arm64.tar.gz` | macOS Apple Silicon |
-| `agent-desk-*-macos-x86_64.tar.gz` | macOS Intel |
-| `agent-desk-*-linux-x86_64.tar.gz` | Linux x86_64 |
-| `agent-desk-*-windows-x86_64.zip` | Windows x86_64 |
+| `agent-doctor-*-macos-arm64.tar.gz` | macOS Apple Silicon |
+| `agent-doctor-*-macos-x86_64.tar.gz` | macOS Intel |
+| `agent-doctor-*-linux-x86_64.tar.gz` | Linux x86_64 |
+| `agent-doctor-*-windows-x86_64.zip` | Windows x86_64 |
 
 ### macOS (Apple Silicon)
 
 ```bash
-gh release download --repo EXboys/agent-desk --pattern 'agent-desk-*-macos-arm64.tar.gz'
-tar -xzf agent-desk-*-macos-arm64.tar.gz
-chmod +x agent-desk
-sudo mv agent-desk /usr/local/bin/
-agent-desk doctor
+gh release download --repo EXboys/agent-doctor --pattern 'agent-doctor-*-macos-arm64.tar.gz'
+tar -xzf agent-doctor-*-macos-arm64.tar.gz
+chmod +x agent-doctor
+sudo mv agent-doctor /usr/local/bin/
+agent-doctor doctor
 ```
 
 ### macOS (Intel)
 
 ```bash
-gh release download --repo EXboys/agent-desk --pattern 'agent-desk-*-macos-x86_64.tar.gz'
-tar -xzf agent-desk-*-macos-x86_64.tar.gz
-chmod +x agent-desk
-sudo mv agent-desk /usr/local/bin/
-agent-desk doctor
+gh release download --repo EXboys/agent-doctor --pattern 'agent-doctor-*-macos-x86_64.tar.gz'
+tar -xzf agent-doctor-*-macos-x86_64.tar.gz
+chmod +x agent-doctor
+sudo mv agent-doctor /usr/local/bin/
+agent-doctor doctor
 ```
 
 ### Linux
 
 ```bash
-gh release download --repo EXboys/agent-desk --pattern 'agent-desk-*-linux-x86_64.tar.gz'
-tar -xzf agent-desk-*-linux-x86_64.tar.gz
-chmod +x agent-desk
-sudo mv agent-desk /usr/local/bin/
-agent-desk doctor
+gh release download --repo EXboys/agent-doctor --pattern 'agent-doctor-*-linux-x86_64.tar.gz'
+tar -xzf agent-doctor-*-linux-x86_64.tar.gz
+chmod +x agent-doctor
+sudo mv agent-doctor /usr/local/bin/
+agent-doctor doctor
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-gh release download --repo EXboys/agent-desk --pattern "agent-desk-*-windows-x86_64.zip"
-Expand-Archive agent-desk-*-windows-x86_64.zip -DestinationPath .
-Move-Item .\agent-desk.exe "$env:LOCALAPPDATA\Programs\agent-desk\"
+gh release download --repo EXboys/agent-doctor --pattern "agent-doctor-*-windows-x86_64.zip"
+Expand-Archive agent-doctor-*-windows-x86_64.zip -DestinationPath .
+Move-Item .\agent-doctor.exe "$env:LOCALAPPDATA\Programs\agent-doctor\"
 ```
 
 ## Desktop (menubar app)
@@ -64,8 +64,8 @@ After a release is published, download the desktop bundle for your platform from
 
 ```bash
 # List desktop assets for the latest release
-gh release view --repo EXboys/agent-desk --json assets --jq '.assets[].name'
-gh release download --repo EXboys/agent-desk --pattern '*.dmg'
+gh release view --repo EXboys/agent-doctor --json assets --jq '.assets[].name'
+gh release download --repo EXboys/agent-doctor --pattern '*.dmg'
 ```
 
 ## Build from source

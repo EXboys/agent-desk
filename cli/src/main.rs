@@ -4,7 +4,10 @@ use anyhow::Result;
 use clap::{Parser, Subcommand};
 
 #[derive(Parser)]
-#[command(name = "agent-desk", about = "Manage desktop AI agents on one machine")]
+#[command(
+    name = "agent-doctor",
+    about = "Diagnose, back up, and repair local AI agent runtimes"
+)]
 #[command(version)]
 struct Cli {
     #[command(subcommand)]
@@ -29,6 +32,11 @@ enum Commands {
         #[command(subcommand)]
         action: ConfigAction,
     },
+    /// Back up, diagnose, and repair a runtime (not yet implemented)
+    Repair {
+        /// Runtime id (e.g. openclaw, hermes, claude-code, codex)
+        runtime: String,
+    },
     /// Apply company profile (not yet implemented)
     Setup {
         #[arg(long)]
@@ -47,7 +55,7 @@ enum Commands {
 
 #[derive(Subcommand)]
 enum ProfileAction {
-    /// Create example ~/.config/agent-desk/profiles.yaml
+    /// Create example ~/.config/agent-doctor/profiles.yaml
     Init,
     /// List configured presets
     List,
@@ -104,6 +112,7 @@ fn main() -> Result<()> {
                 base_url,
             } => commands::config::set(&runtime, provider, model, base_url)?,
         },
+        Commands::Repair { runtime } => commands::repair::run(&runtime)?,
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {

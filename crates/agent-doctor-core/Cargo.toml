@@ -1,6 +1,6 @@
 [package]
-name = "agent-desk-core"
-description = "Shared discovery, doctor, and company profile logic for Agent Desk"
+name = "agent-doctor-core"
+description = "Shared discovery, doctor, and company profile logic for Agent Doctor"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

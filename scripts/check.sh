@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-CLI_PACKAGES=(-p agent-desk-core -p agent-desk)
-DESKTOP_PACKAGE=(-p agent-desk-desktop)
+CLI_PACKAGES=(-p agent-doctor-core -p agent-doctor)
+DESKTOP_PACKAGE=(-p agent-doctor-desktop)
 
 usage() {
   cat <<'EOF'
@@ -21,12 +21,12 @@ Commands:
   frontend        Build desktop frontend (npm)
   cli             fmt-check + clippy-cli + test-cli + build-cli
   desktop         clippy-desktop
-  all             cli + frontend; desktop rust on macOS or AGENT_DESK_CHECK_DESKTOP=1
+  all             cli + frontend; desktop rust on macOS or AGENT_DOCTOR_CHECK_DESKTOP=1
   help            Show this message
 
 Examples:
   ./scripts/check.sh cli
-  AGENT_DESK_CHECK_DESKTOP=1 ./scripts/check.sh all
+  AGENT_DOCTOR_CHECK_DESKTOP=1 ./scripts/check.sh all
 EOF
 }
 
@@ -51,7 +51,7 @@ run_test_cli() {
 }
 
 run_build_cli() {
-  cargo build --release -p agent-desk
+  cargo build --release -p agent-doctor
 }
 
 run_frontend() {
@@ -59,7 +59,7 @@ run_frontend() {
 }
 
 should_check_desktop() {
-  [[ "${AGENT_DESK_CHECK_DESKTOP:-}" == "1" ]] && return 0
+  [[ "${AGENT_DOCTOR_CHECK_DESKTOP:-}" == "1" ]] && return 0
   [[ "$(uname -s)" == "Darwin" ]] && return 0
   return 1
 }
@@ -97,7 +97,7 @@ case "$command" in
     if should_check_desktop; then
       run_desktop_rust
     else
-      echo "Skipping desktop Rust checks (set AGENT_DESK_CHECK_DESKTOP=1 on Linux with GTK deps)."
+      echo "Skipping desktop Rust checks (set AGENT_DOCTOR_CHECK_DESKTOP=1 on Linux with GTK deps)."
     fi
     ;;
   help | -h | --help) usage ;;

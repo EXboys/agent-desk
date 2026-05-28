@@ -26,13 +26,13 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Clippy (core + CLI only)
-        run: cargo clippy -p agent-desk-core -p agent-desk --all-targets -- -D warnings
+        run: cargo clippy -p agent-doctor-core -p agent-doctor --all-targets -- -D warnings
 
       - name: Test (core + CLI only)
-        run: cargo test -p agent-desk-core -p agent-desk
+        run: cargo test -p agent-doctor-core -p agent-doctor
 
       - name: Build CLI
-        run: cargo build --release -p agent-desk
+        run: cargo build --release -p agent-doctor
 
   rust-desktop:
     name: Rust desktop (Tauri)
@@ -49,7 +49,7 @@ jobs:
           workspaces: desktop/src-tauri
 
       - name: Clippy desktop crate
-        run: cargo clippy -p agent-desk-desktop --all-targets -- -D warnings
+        run: cargo clippy -p agent-doctor-desktop --all-targets -- -D warnings
 
   desktop-frontend:
     name: Desktop frontend

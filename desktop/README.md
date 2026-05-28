@@ -1,11 +1,13 @@
 # Desktop (Tauri menubar)
 
-**Tauri 2** menubar companion that calls the same Rust core as the CLI (`agent-desk-core`).
+**Tauri 2** menubar companion that calls the same Rust core as the CLI (`agent-doctor-core`).
 
 ## Features (MVP)
 
 - System tray with **Show**, **Run doctor**, **Quit**
 - Small window listing discovered runtimes and company profile status
+- Hermes model preset switching and API key status
+- Foundation for future repair reports and guided fixes
 - No separate business logic in the TypeScript UI layer
 
 ## Develop
@@ -25,8 +27,8 @@ npm run tauri build
 
 ## CLI-only workflow
 
-You can use Agent Desk without the desktop app:
+You can use Agent Doctor without the desktop app:
 
 ```bash
-cargo run -p agent-desk -- doctor
+cargo run -p agent-doctor -- doctor
 ```

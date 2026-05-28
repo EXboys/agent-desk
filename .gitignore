@@ -30,7 +30,7 @@ Thumbs.db
 .env.*
 *.pem
 profile.env
-agent-desk/profile.env
+agent-doctor/profile.env
 !docs/examples/profile.env.example
 
 # Test / cache

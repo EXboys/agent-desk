@@ -94,10 +94,10 @@ mod tests {
     #[test]
     fn finds_binary_in_supplemental_dirs() {
         let temp = tempfile::tempdir().expect("tempdir");
-        let bin = temp.path().join("agent-desk-probe");
+        let bin = temp.path().join("agent-doctor-probe");
         write_executable(&bin);
 
-        let found = find_binary_in_dirs("agent-desk-probe", &[temp.path().to_path_buf()]);
+        let found = find_binary_in_dirs("agent-doctor-probe", &[temp.path().to_path_buf()]);
         assert_eq!(found, Some(bin));
     }
 

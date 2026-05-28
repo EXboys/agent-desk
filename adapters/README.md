@@ -13,8 +13,8 @@ Each adapter implements:
 
 | Adapter | Priority | Implementation |
 |---------|----------|----------------|
-| `openclaw` | P0 | `crates/agent-desk-core/src/adapters/openclaw.rs` |
-| `claude-code` | P0 | `crates/agent-desk-core/src/adapters/claude_code.rs` |
-| `hermes` | P0 | `crates/agent-desk-core/src/adapters/hermes.rs` |
-| `codex` | P1 | `crates/agent-desk-core/src/adapters/codex.rs` |
+| `openclaw` | P0 | `crates/agent-doctor-core/src/adapters/openclaw.rs` |
+| `claude-code` | P0 | `crates/agent-doctor-core/src/adapters/claude_code.rs` |
+| `hermes` | P0 | `crates/agent-doctor-core/src/adapters/hermes.rs` |
+| `codex` | P1 | `crates/agent-doctor-core/src/adapters/codex.rs` |
 | `skilllite` | P2 | — |

@@ -7,16 +7,16 @@ fmt-check:
 	cargo fmt --all -- --check
 
 clippy-cli:
-	cargo clippy -p agent-desk-core -p agent-desk --all-targets -- -D warnings
+	cargo clippy -p agent-doctor-core -p agent-doctor --all-targets -- -D warnings
 
 clippy-desktop:
-	cargo clippy -p agent-desk-desktop --all-targets -- -D warnings
+	cargo clippy -p agent-doctor-desktop --all-targets -- -D warnings
 
 test-cli:
-	cargo test -p agent-desk-core -p agent-desk
+	cargo test -p agent-doctor-core -p agent-doctor
 
 build-cli:
-	cargo build --release -p agent-desk
+	cargo build --release -p agent-doctor
 
 frontend:
 	cd desktop && npm ci && npm run build
