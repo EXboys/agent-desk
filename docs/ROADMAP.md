@@ -6,6 +6,7 @@
 - [x] Hermes model presets — `profile init/list/use`, `config show hermes`
 - [x] Repair safety foundation — diagnostic sensitivity classes, redaction, typed actions, backup/audit report types
 - [x] Runtime-specific read-only probes — binary, version, PATH conflicts, config parse/schema, env conflicts, gateway connectivity, MCP/Skills path references
+- [x] Hermes deep probes — model schema, provider API key env, `.env` parse, duplicate/empty key checks, and `.env` file permissions
 - [ ] `agent-doctor repair <runtime>` — back up configs, diagnose common breakages, and apply confirmed fixes
 - [ ] `agent-doctor setup` — write `~/.config/agent-doctor/profile.env` + merge runtime configs
 - [ ] `agent-doctor sync` — skill bundle sync from control plane

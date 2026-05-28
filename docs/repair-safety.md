@@ -30,6 +30,7 @@ Agent Doctor treats repair as a controlled enterprise workflow, not as a free-fo
    - environment variable conflicts from process and common shell files
    - gateway/base_url TCP reachability
    - obvious MCP/Skills path references and broken links
+   - Hermes provider/API key env requirements and `.env` permissions
 2. Create a backup snapshot before modifying files.
 3. Redact the diagnostic bundle.
 4. Let AI summarize and rank likely causes from redacted facts.

@@ -839,6 +839,175 @@ body::before {
   color: var(--text-soft);
   font-size: 0.68rem;
   line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.repair-panel {
+  margin-top: 8px;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  white-space: normal;
+}
+
+.repair-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+  font-size: 0.72rem;
+}
+
+.repair-panel-head span {
+  color: var(--text-soft);
+  font-size: 0.66rem;
+}
+
+.repair-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.repair-chip,
+.repair-check-status {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.repair-chip {
+  padding: 4px 7px;
+  font-size: 0.62rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.repair-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.repair-chip:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.repair-chip.is-active {
+  border-color: currentColor;
+  box-shadow: 0 0 0 1px currentColor;
+}
+
+.repair-chip.all {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.repair-chip:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.repair-check-status {
+  justify-content: center;
+  min-width: 52px;
+  padding: 4px 6px;
+  font-size: 0.58rem;
+  text-transform: uppercase;
+}
+
+.repair-chip.pass,
+.repair-check-status.pass {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.repair-chip.warn,
+.repair-check-status.warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+
+.repair-chip.fail,
+.repair-check-status.fail {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.repair-chip.muted,
+.repair-check-status.muted {
+  background: var(--surface-inset);
+  color: var(--text-soft);
+}
+
+.repair-checks {
+  display: grid;
+  gap: 5px;
+  max-height: 190px;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  list-style: none;
+}
+
+.repair-check-empty {
+  display: block;
+  padding: 10px;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 0.66rem;
+  border-style: dashed;
+  background: transparent;
+}
+
+.repair-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 7px;
+  align-items: start;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+}
+
+.repair-check-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  font-size: 0.68rem;
+}
+
+.repair-check-body strong {
+  font-size: 0.7rem;
+  color: var(--text);
+}
+
+.repair-check-body span {
+  color: var(--text-muted);
+}
+
+.repair-check-detail {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.repair-plan {
+  margin: 8px 0 0;
+  color: var(--text-soft);
+  font-size: 0.66rem;
 }
 
 .empty-state {

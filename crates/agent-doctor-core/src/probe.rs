@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::adapter::RuntimeAdapter;
 use crate::adapters::util::{find_all_binaries, read_version_result};
-use crate::adapters::{adapter_by_id, all_adapters};
+use crate::adapters::{adapter_by_id, all_adapters, HermesAdapter};
 use crate::repair::{DiagnosticBundle, DiagnosticFact, SensitivityLevel};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -133,6 +133,9 @@ fn probe_adapter(adapter: &dyn RuntimeAdapter) -> Result<RuntimeProbeReport> {
     probe_binary(&spec, &mut checks, &mut facts);
     probe_configs(adapter, spec, &mut checks, &mut facts);
     probe_env_conflicts(spec, &mut checks, &mut facts);
+    if spec.runtime_id == "hermes" {
+        probe_hermes_deep(&mut checks, &mut facts);
+    }
     probe_gateway(adapter, &mut checks, &mut facts);
 
     Ok(RuntimeProbeReport {
@@ -371,7 +374,20 @@ enum ParsedConfig {
     Json(serde_json::Value),
     Yaml(serde_yaml::Value),
     Toml(toml::Value),
-    Env,
+    Env(EnvFile),
+}
+
+#[derive(Debug, Clone)]
+struct EnvEntry {
+    key: String,
+    value_present: bool,
+    value_empty: bool,
+}
+
+#[derive(Debug, Clone)]
+struct EnvFile {
+    entries: Vec<EnvEntry>,
+    malformed_lines: Vec<usize>,
 }
 
 fn parse_config(raw: &str, format: ConfigFormat) -> Result<ParsedConfig, String> {
@@ -385,7 +401,38 @@ fn parse_config(raw: &str, format: ConfigFormat) -> Result<ParsedConfig, String>
         ConfigFormat::Toml => toml::from_str(raw)
             .map(ParsedConfig::Toml)
             .map_err(|error| format!("invalid TOML: {error}")),
-        ConfigFormat::Env => Ok(ParsedConfig::Env),
+        ConfigFormat::Env => Ok(ParsedConfig::Env(parse_env_file(raw))),
+    }
+}
+
+fn parse_env_file(raw: &str) -> EnvFile {
+    let mut entries = Vec::new();
+    let mut malformed_lines = Vec::new();
+    for (idx, line) in raw.lines().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        let assignment = trimmed.strip_prefix("export ").unwrap_or(trimmed);
+        let Some((key, value)) = assignment.split_once('=') else {
+            malformed_lines.push(idx + 1);
+            continue;
+        };
+        let key = key.trim();
+        if key.is_empty() {
+            malformed_lines.push(idx + 1);
+            continue;
+        }
+        let value = value.trim().trim_matches('"').trim_matches('\'');
+        entries.push(EnvEntry {
+            key: key.to_string(),
+            value_present: true,
+            value_empty: value.is_empty(),
+        });
+    }
+    EnvFile {
+        entries,
+        malformed_lines,
     }
 }
 
@@ -422,6 +469,7 @@ fn probe_schema(
         ("claude-code", ParsedConfig::Json(value)) => probe_claude_schema(path, value, checks),
         ("codex", ParsedConfig::Toml(value)) => probe_codex_schema(path, value, checks, facts),
         ("hermes", ParsedConfig::Yaml(value)) => probe_hermes_schema(path, value, checks, facts),
+        ("hermes", ParsedConfig::Env(value)) => probe_hermes_env_schema(path, value, checks),
         _ => {}
     }
 }
@@ -547,17 +595,258 @@ fn probe_hermes_schema(
     }
 
     for key in ["provider", "default", "base_url"] {
-        if model.get(key).is_none() {
-            checks.push(schema_warn(path, format!("model.{key} is missing")));
+        match model.get(key).and_then(serde_yaml::Value::as_str) {
+            Some(value) if !value.trim().is_empty() => {
+                facts.push(DiagnosticFact::new(
+                    format!(
+                        "{}.{}",
+                        if key == "default" { "model" } else { "hermes" },
+                        if key == "default" { "name" } else { key }
+                    ),
+                    value,
+                    SensitivityLevel::ConfigShape,
+                ));
+            }
+            Some(_) => checks.push(schema_warn(path, format!("model.{key} is empty"))),
+            None => checks.push(schema_warn(path, format!("model.{key} is missing"))),
         }
     }
     if let Some(base_url) = model.get("base_url").and_then(serde_yaml::Value::as_str) {
+        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
+            checks.push(schema_warn(
+                path,
+                "model.base_url should start with http:// or https://".to_string(),
+            ));
+        }
         facts.push(DiagnosticFact::new(
             "gateway.url",
             base_url,
             SensitivityLevel::ConfigShape,
         ));
     }
+}
+
+fn probe_hermes_env_schema(path: &Path, env: &EnvFile, checks: &mut Vec<ProbeCheck>) {
+    if env.malformed_lines.is_empty() {
+        checks.push(ProbeCheck::new(
+            format!("hermes.env.parse:{}", path.display()),
+            "Hermes .env parse",
+            ProbeStatus::Pass,
+            ProbeSeverity::Info,
+            "Hermes .env contains valid KEY=value entries",
+            SensitivityLevel::ConfigShape,
+        ));
+    } else {
+        checks.push(
+            ProbeCheck::new(
+                format!("hermes.env.parse:{}", path.display()),
+                "Hermes .env parse",
+                ProbeStatus::Warn,
+                ProbeSeverity::Warning,
+                format!(
+                    "{} .env lines are not KEY=value assignments",
+                    env.malformed_lines.len()
+                ),
+                SensitivityLevel::ConfigShape,
+            )
+            .with_details(
+                env.malformed_lines
+                    .iter()
+                    .map(|line| format!("line {line}"))
+                    .collect(),
+            ),
+        );
+    }
+    probe_hermes_env_permissions(path, checks);
+}
+
+#[cfg(unix)]
+fn probe_hermes_env_permissions(path: &Path, checks: &mut Vec<ProbeCheck>) {
+    use std::os::unix::fs::PermissionsExt;
+
+    if let Ok(metadata) = fs::metadata(path) {
+        let mode = metadata.permissions().mode() & 0o777;
+        let too_open = mode & 0o077 != 0;
+        checks.push(ProbeCheck::new(
+            format!("hermes.env.permissions:{}", path.display()),
+            "Hermes .env permissions",
+            if too_open {
+                ProbeStatus::Warn
+            } else {
+                ProbeStatus::Pass
+            },
+            if too_open {
+                ProbeSeverity::Warning
+            } else {
+                ProbeSeverity::Info
+            },
+            if too_open {
+                format!(".env permissions are {mode:o}; recommended 600")
+            } else {
+                format!(".env permissions are {mode:o}")
+            },
+            SensitivityLevel::LocalPath,
+        ));
+    }
+}
+
+#[cfg(not(unix))]
+fn probe_hermes_env_permissions(_path: &Path, _checks: &mut Vec<ProbeCheck>) {}
+
+fn probe_hermes_deep(checks: &mut Vec<ProbeCheck>, facts: &mut Vec<DiagnosticFact>) {
+    let provider = facts
+        .iter()
+        .find(|fact| fact.key == "hermes.provider")
+        .map(|fact| fact.value.trim().to_string())
+        .filter(|value| !value.is_empty());
+
+    let Some(provider) = provider else {
+        checks.push(ProbeCheck::new(
+            "hermes.provider",
+            "Hermes provider",
+            ProbeStatus::Warn,
+            ProbeSeverity::Warning,
+            "Hermes model.provider is missing; API key requirement cannot be determined",
+            SensitivityLevel::ConfigShape,
+        ));
+        return;
+    };
+
+    let api_key_env = HermesAdapter::provider_api_key_env(&provider);
+    match api_key_env {
+        None => {
+            checks.push(ProbeCheck::new(
+                "hermes.api_key.required",
+                "Hermes API key requirement",
+                ProbeStatus::NotApplicable,
+                ProbeSeverity::Info,
+                format!("provider '{provider}' does not require an API key"),
+                SensitivityLevel::ConfigShape,
+            ));
+            facts.push(DiagnosticFact::new(
+                "hermes.api_key.required",
+                "false",
+                SensitivityLevel::Public,
+            ));
+        }
+        Some(env_key) => {
+            facts.push(DiagnosticFact::new(
+                "hermes.api_key.env",
+                env_key.clone(),
+                SensitivityLevel::ConfigShape,
+            ));
+            facts.push(DiagnosticFact::new(
+                "hermes.api_key.required",
+                "true",
+                SensitivityLevel::Public,
+            ));
+            probe_hermes_required_key(&env_key, checks, facts);
+        }
+    }
+}
+
+fn probe_hermes_required_key(
+    env_key: &str,
+    checks: &mut Vec<ProbeCheck>,
+    facts: &mut Vec<DiagnosticFact>,
+) {
+    let env_path = dirs::home_dir()
+        .map(|home| home.join(".hermes/.env"))
+        .unwrap_or_else(|| PathBuf::from(".hermes/.env"));
+
+    if !env_path.exists() {
+        checks.push(ProbeCheck::new(
+            "hermes.api_key.configured",
+            "Hermes API key configured",
+            ProbeStatus::Warn,
+            ProbeSeverity::Warning,
+            format!("{env_key} is required but ~/.hermes/.env does not exist"),
+            SensitivityLevel::LocalPath,
+        ));
+        facts.push(DiagnosticFact::new(
+            "hermes.api_key.configured",
+            "false",
+            SensitivityLevel::Public,
+        ));
+        return;
+    }
+
+    let raw = match fs::read_to_string(&env_path) {
+        Ok(raw) => raw,
+        Err(error) => {
+            checks.push(ProbeCheck::new(
+                "hermes.api_key.configured",
+                "Hermes API key configured",
+                ProbeStatus::Warn,
+                ProbeSeverity::Warning,
+                format!("failed to read ~/.hermes/.env: {error}"),
+                SensitivityLevel::LocalPath,
+            ));
+            return;
+        }
+    };
+
+    let env = parse_env_file(&raw);
+    let matches: Vec<_> = env
+        .entries
+        .iter()
+        .filter(|entry| entry.key == env_key)
+        .collect();
+    let configured = matches
+        .iter()
+        .any(|entry| entry.value_present && !entry.value_empty);
+    facts.push(DiagnosticFact::new(
+        "hermes.api_key.configured",
+        configured.to_string(),
+        SensitivityLevel::Public,
+    ));
+
+    if matches.is_empty() {
+        checks.push(ProbeCheck::new(
+            "hermes.api_key.configured",
+            "Hermes API key configured",
+            ProbeStatus::Warn,
+            ProbeSeverity::Warning,
+            format!("{env_key} is missing from ~/.hermes/.env"),
+            SensitivityLevel::ConfigShape,
+        ));
+        return;
+    }
+
+    if matches.len() > 1 {
+        checks.push(ProbeCheck::new(
+            "hermes.api_key.duplicates",
+            "Hermes API key duplicates",
+            ProbeStatus::Warn,
+            ProbeSeverity::Warning,
+            format!(
+                "{env_key} appears {} times in ~/.hermes/.env",
+                matches.len()
+            ),
+            SensitivityLevel::ConfigShape,
+        ));
+    }
+
+    checks.push(ProbeCheck::new(
+        "hermes.api_key.configured",
+        "Hermes API key configured",
+        if configured {
+            ProbeStatus::Pass
+        } else {
+            ProbeStatus::Warn
+        },
+        if configured {
+            ProbeSeverity::Info
+        } else {
+            ProbeSeverity::Warning
+        },
+        if configured {
+            format!("{env_key} is configured in ~/.hermes/.env")
+        } else {
+            format!("{env_key} exists in ~/.hermes/.env but is empty")
+        },
+        SensitivityLevel::ConfigShape,
+    ));
 }
 
 fn schema_warn(path: &Path, message: String) -> ProbeCheck {
@@ -849,7 +1138,7 @@ fn collect_path_references(parsed: &ParsedConfig, out: &mut Vec<String>) {
         ParsedConfig::Json(value) => collect_json_paths("", value, out),
         ParsedConfig::Yaml(value) => collect_yaml_paths("", value, out),
         ParsedConfig::Toml(value) => collect_toml_paths("", value, out),
-        ParsedConfig::Env => {}
+        ParsedConfig::Env(_) => {}
     }
 }
 
@@ -999,5 +1288,34 @@ mod tests {
         collect_json_paths("", &value, &mut refs);
         assert_eq!(refs.len(), 1);
         assert!(refs[0].contains("missing-mcp"));
+    }
+
+    #[test]
+    fn parses_env_file_and_tracks_malformed_lines() {
+        let env = parse_env_file(
+            r#"
+DEEPSEEK_API_KEY=sk-test
+EMPTY_KEY=
+not-an-assignment
+"#,
+        );
+        assert_eq!(env.entries.len(), 2);
+        assert_eq!(env.entries[0].key, "DEEPSEEK_API_KEY");
+        assert!(!env.entries[0].value_empty);
+        assert_eq!(env.entries[1].key, "EMPTY_KEY");
+        assert!(env.entries[1].value_empty);
+        assert_eq!(env.malformed_lines, vec![4]);
+    }
+
+    #[test]
+    fn hermes_required_key_detects_empty_and_duplicate_entries() {
+        let env = parse_env_file("DEEPSEEK_API_KEY=\nDEEPSEEK_API_KEY=sk-test\n");
+        let matches: Vec<_> = env
+            .entries
+            .iter()
+            .filter(|entry| entry.key == "DEEPSEEK_API_KEY")
+            .collect();
+        assert_eq!(matches.len(), 2);
+        assert!(matches.iter().any(|entry| !entry.value_empty));
     }
 }

@@ -72,10 +72,10 @@ impl Redactor {
     pub fn redact_fact(&self, fact: &DiagnosticFact) -> RedactedFact {
         let (value, redacted) = match fact.sensitivity {
             SensitivityLevel::Public | SensitivityLevel::ConfigShape => {
-                (redact_inline_secrets(&fact.key, &fact.value), false)
+                (redact_inline_secret_values(&fact.value), false)
             }
             SensitivityLevel::LocalPath if self.policy.reveal_local_paths => {
-                (redact_inline_secrets(&fact.key, &fact.value), false)
+                (redact_inline_secret_values(&fact.value), false)
             }
             SensitivityLevel::LocalPath => (redact_home_path(&fact.value), true),
             SensitivityLevel::SensitiveLog if self.policy.reveal_sensitive_logs => {
@@ -255,7 +255,10 @@ fn redact_inline_secrets(key: &str, value: &str) -> String {
     if looks_secret_key(key) {
         return "[REDACTED]".to_string();
     }
+    redact_inline_secret_values(value)
+}
 
+fn redact_inline_secret_values(value: &str) -> String {
     value
         .split_whitespace()
         .map(|part| {
@@ -331,6 +334,18 @@ mod tests {
         let redacted = Redactor::new(RedactionPolicy::default()).redact_fact(&fact);
         assert!(redacted.value.contains("[REDACTED]"));
         assert!(!redacted.value.contains("sk-1234567890abcdef"));
+    }
+
+    #[test]
+    fn keeps_config_shape_api_key_metadata_visible() {
+        let fact = DiagnosticFact::new(
+            "hermes.api_key.env",
+            "DEEPSEEK_API_KEY",
+            SensitivityLevel::ConfigShape,
+        );
+        let redacted = Redactor::new(RedactionPolicy::default()).redact_fact(&fact);
+        assert_eq!(redacted.value, "DEEPSEEK_API_KEY");
+        assert!(!redacted.redacted);
     }
 
     #[test]

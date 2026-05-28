@@ -1,8 +1,10 @@
 use agent_doctor_core::{
-    apply_profile_model, load_profiles, run_doctor, set_runtime_model, use_profile, ApplyReport,
-    DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProfilesDocument,
-    RuntimeModelPreset, UseProfileReport,
+    apply_profile_model, build_repair_preview_from_bundle, load_profiles, probe_runtime,
+    run_doctor, set_runtime_model, use_profile, ApplyReport, DoctorReport, HermesAdapter,
+    HermesProfilePreset, HermesSettings, ProbeStatus, ProfilesDocument, RuntimeModelPreset,
+    UseProfileReport,
 };
+use serde::Serialize;
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::{Emitter, Manager};
 
@@ -83,6 +85,75 @@ fn apply_profile_model_command(
     .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn run_repair_preview_command(runtime: String) -> Result<RepairPreviewResponse, String> {
+    let report = probe_runtime(&runtime).map_err(|error| error.to_string())?;
+    let plan = build_repair_preview_from_bundle(report.to_diagnostic_bundle());
+    let mut summary = RepairPreviewSummary::default();
+    let checks = report
+        .checks
+        .into_iter()
+        .map(|check| {
+            match check.status {
+                ProbeStatus::Pass => summary.pass += 1,
+                ProbeStatus::Warn => summary.warn += 1,
+                ProbeStatus::Fail => summary.fail += 1,
+                ProbeStatus::NotApplicable => summary.not_applicable += 1,
+                ProbeStatus::NotChecked => summary.not_checked += 1,
+            }
+            RepairPreviewCheck {
+                title: check.title,
+                status: probe_status_label(check.status).to_string(),
+                message: check.message,
+                details: check.details,
+            }
+        })
+        .collect();
+    Ok(RepairPreviewResponse {
+        runtime_id: report.runtime_id,
+        display_name: report.display_name,
+        summary,
+        checks,
+        plan_summary: plan.summary,
+    })
+}
+
+#[derive(Debug, Default, Serialize)]
+struct RepairPreviewSummary {
+    pass: usize,
+    warn: usize,
+    fail: usize,
+    not_applicable: usize,
+    not_checked: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct RepairPreviewCheck {
+    title: String,
+    status: String,
+    message: String,
+    details: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct RepairPreviewResponse {
+    runtime_id: String,
+    display_name: String,
+    summary: RepairPreviewSummary,
+    checks: Vec<RepairPreviewCheck>,
+    plan_summary: String,
+}
+
+fn probe_status_label(status: ProbeStatus) -> &'static str {
+    match status {
+        ProbeStatus::Pass => "pass",
+        ProbeStatus::Warn => "warn",
+        ProbeStatus::Fail => "fail",
+        ProbeStatus::NotApplicable => "n/a",
+        ProbeStatus::NotChecked => "not checked",
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -134,7 +205,8 @@ pub fn run() {
             use_profile_command,
             get_hermes_model_command,
             set_hermes_model_command,
-            apply_profile_model_command
+            apply_profile_model_command,
+            run_repair_preview_command
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
