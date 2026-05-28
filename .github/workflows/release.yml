@@ -131,6 +131,7 @@ jobs:
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY_SECRET: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
         run: |
           if [ -z "$APPLE_CERTIFICATE" ]; then echo "APPLE_CERTIFICATE not set, skipping signing"; exit 0; fi
@@ -142,7 +143,18 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign >/dev/null 2>&1
           rm -f certificate.p12
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | grep "Developer ID Application" | head -1 | awk -F'"' '{print $2}')
+          SIGNING_IDENTITY="$APPLE_SIGNING_IDENTITY_SECRET"
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/Developer ID Application/ { print $2; exit }')
+          fi
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            SIGNING_IDENTITY=$(security find-identity -v -p codesigning build.keychain | awk -F'"' '/"/ { print $2; exit }')
+          fi
+          if [ -z "$SIGNING_IDENTITY" ]; then
+            echo "::error::No codesigning identity found in build.keychain after importing APPLE_CERTIFICATE."
+            security find-identity -v -p codesigning build.keychain | sed 's/"[^"]*"/"[redacted]"/g'
+            exit 1
+          fi
           echo "APPLE_SIGNING_IDENTITY=$SIGNING_IDENTITY" >> $GITHUB_ENV
           echo "Signing identity configured (identity not logged)."
 
