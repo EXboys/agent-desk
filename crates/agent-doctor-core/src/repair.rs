@@ -161,7 +161,7 @@ pub struct AuditReport {
 }
 
 pub fn build_repair_preview(runtime_id: &str) -> RepairPlan {
-    let bundle = DiagnosticBundle {
+    build_repair_preview_from_bundle(DiagnosticBundle {
         runtime_id: runtime_id.to_string(),
         facts: vec![
             DiagnosticFact::new("runtime.id", runtime_id, SensitivityLevel::Public),
@@ -181,8 +181,10 @@ pub fn build_repair_preview(runtime_id: &str) -> RepairPlan {
             "Future repair runs must create a backup snapshot before modifying configs."
                 .to_string(),
         ],
-    };
+    })
+}
 
+pub fn build_repair_preview_from_bundle(bundle: DiagnosticBundle) -> RepairPlan {
     let redactor = Redactor::new(RedactionPolicy::default());
     let actions = vec![
         RepairAction {
@@ -231,7 +233,7 @@ pub fn build_repair_preview(runtime_id: &str) -> RepairPlan {
     ];
 
     RepairPlan {
-        runtime_id: runtime_id.to_string(),
+        runtime_id: bundle.runtime_id.clone(),
         summary: "Safe repair preview: backup, diagnose with redacted facts, apply confirmed typed actions, verify, and keep rollback metadata.".to_string(),
         redacted_facts: redactor.redact_bundle(&bundle),
         requires_confirmation: actions.iter().any(|action| action.requires_confirmation),

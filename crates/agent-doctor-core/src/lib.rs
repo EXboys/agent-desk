@@ -2,6 +2,7 @@ pub mod adapter;
 pub mod adapters;
 pub mod doctor;
 pub mod presets;
+pub mod probe;
 pub mod profile;
 pub mod repair;
 
@@ -17,8 +18,11 @@ pub use presets::{
     show_config, use_profile, HermesProfilePreset, ProfileEntry, ProfilesDocument,
     UseProfileReport,
 };
+pub use probe::{
+    probe_all_runtimes, probe_runtime, ProbeCheck, ProbeSeverity, ProbeStatus, RuntimeProbeReport,
+};
 pub use repair::{
-    build_repair_preview, AuditReport, BackupSnapshot, DiagnosticBundle, DiagnosticFact,
-    RedactedFact, RedactionPolicy, Redactor, RepairAction, RepairActionKind, RepairPlan,
-    RepairRisk, SensitivityLevel, SnapshotFile,
+    build_repair_preview, build_repair_preview_from_bundle, AuditReport, BackupSnapshot,
+    DiagnosticBundle, DiagnosticFact, RedactedFact, RedactionPolicy, Redactor, RepairAction,
+    RepairActionKind, RepairPlan, RepairRisk, SensitivityLevel, SnapshotFile,
 };

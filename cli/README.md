@@ -20,7 +20,7 @@ cargo run -p agent-doctor -- doctor --json
 | `doctor` | Implemented (OpenClaw, Hermes, Claude Code, Codex discovery) |
 | `profile list/init/use` | Implemented (Hermes model switching) |
 | `config show` | Implemented (Hermes) |
-| `repair <runtime>` | Safety preview implemented; runtime-specific playbooks planned |
+| `repair <runtime>` | Read-only probes + safety preview implemented; runtime-specific repair execution planned |
 | `setup` | Stub |
 | `sync` | Stub |
 | `policy pull` | Stub |
@@ -29,4 +29,4 @@ cargo run -p agent-doctor -- doctor --json
 
 Runtime-specific code is in `crates/agent-doctor-core/src/adapters/`. See [../adapters/README.md](../adapters/README.md) for the adapter contract.
 
-Repair safety primitives live in `agent-doctor-core::repair`: diagnostic facts are classified by sensitivity, redacted before AI analysis, and converted into typed repair actions before execution.
+Repair safety primitives live in `agent-doctor-core::repair`: diagnostic facts are classified by sensitivity, redacted before AI analysis, and converted into typed repair actions before execution. Runtime probes live in `agent-doctor-core::probe` and currently check binaries, versions, PATH conflicts, config parse/schema issues, env conflicts, gateway reachability, and obvious MCP/Skills path references.
