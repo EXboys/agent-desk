@@ -81,12 +81,20 @@ enum Commands {
         #[arg(long)]
         json: bool,
     },
-    /// Apply company profile (not yet implemented)
+    /// Apply company gateway profile to local runtimes
     Setup {
+        /// Company gateway base URL (e.g. https://gateway.company.internal/v1)
         #[arg(long)]
         url: String,
+        /// Company API key (written to profile.env and runtime configs)
         #[arg(long)]
         key: String,
+        /// Hermes provider id when creating config (default: openai)
+        #[arg(long, default_value = "openai")]
+        provider: String,
+        /// Emit JSON
+        #[arg(long)]
+        json: bool,
     },
     /// Pull private SkillHub bundle (not yet implemented)
     Sync,
@@ -186,7 +194,12 @@ fn main() -> Result<()> {
             explain,
             json,
         )?,
-        Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
+        Commands::Setup {
+            url,
+            key,
+            provider,
+            json,
+        } => commands::setup::run(&url, &key, Some(&provider), json)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {
             PolicyAction::Pull => commands::policy::pull()?,

@@ -52,6 +52,12 @@ pub fn run(json: bool, explain: bool) -> Result<()> {
         println!("Active preset: (none) — run `agent-doctor profile init`");
     }
 
+    if let Some(url) = &report.company_gateway_url {
+        println!("Company gateway (profile.env): {url}");
+    } else if report.profile_env_exists {
+        println!("Company profile: found but gateway URL missing");
+    }
+
     println!();
     for runtime in &report.runtimes {
         let status = if runtime.installed {

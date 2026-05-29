@@ -14,7 +14,7 @@
 - [x] `agent-doctor repair <runtime> --explain` — AI diagnosis from probe (no writes)
 - [x] `agent-doctor repair <runtime> --apply` — backup → Hermes rule playbook → re-probe → audit (Hermes only for auto-fix today)
 - [x] `agent-doctor repair <runtime> --rollback [--backup <id>]` — restore configs from `~/.config/agent-doctor/backups/`
-- [ ] `agent-doctor setup` — write `~/.config/agent-doctor/profile.env` + merge runtime configs
+- [x] `agent-doctor setup` — write `~/.config/agent-doctor/profile.env` + merge runtime configs
 - [ ] `agent-doctor sync` — skill bundle sync from control plane
 - [ ] `agent-doctor policy pull` — cache policies from control plane
 - [ ] Company profile: `--url` + API key

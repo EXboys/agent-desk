@@ -33,7 +33,7 @@ See [docs/enterprise.md](docs/enterprise.md).
 
 ## Status
 
-🚧 **Early MVP** — `doctor`, Hermes-focused `repair --apply` (rule fixes + backup + rollback), and a Tauri menubar shell. **Not yet:** `setup`, enterprise `sync`/`policy`, OpenClaw/Codex playbooks, AI auto-repair, or auto-filling API keys. See [docs/ROADMAP.md](docs/ROADMAP.md).
+🚧 **Early MVP** — `doctor`, `install`, `setup`, Hermes-focused `repair --apply`, and a Tauri menubar shell. **Not yet:** enterprise `sync`/`policy`, full OpenClaw/Codex playbooks, or auto-filling API keys. See [docs/ROADMAP.md](docs/ROADMAP.md).
 
 **Hermes repair today:** backup configs; tighten `.env` permissions; dedupe API key env vars; fill model fields from your active profile; when the key is missing, create a `.env` placeholder and a local setup guide (you paste the secret). **Rollback:** `repair hermes --rollback` or the desktop **Rollback from backup** button.
 

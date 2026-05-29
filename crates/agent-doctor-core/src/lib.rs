@@ -8,6 +8,7 @@ pub mod probe;
 pub mod profile;
 pub mod repair;
 pub mod runtime;
+pub mod setup;
 
 pub use adapter::{
     AdapterDiscovery, ApplyReport, RuntimeAdapter, RuntimeModelPreset, RuntimeModelState,
@@ -31,6 +32,7 @@ pub use presets::{
 pub use probe::{
     probe_all_runtimes, probe_runtime, ProbeCheck, ProbeSeverity, ProbeStatus, RuntimeProbeReport,
 };
+pub use profile::{agent_profile_path, read_company_profile, CompanyProfile};
 pub use repair::{
     allowed_paths_for_runtime, apply_hermes_playbook, apply_hermes_playbook_filtered,
     build_repair_preview, build_repair_preview_from_bundle, execute_repair, execute_repair_loop,
@@ -51,3 +53,4 @@ pub use runtime::{
     run_runtime_lifecycle, runtime_supports_lifecycle, runtime_supports_playbook,
     suggest_runtime_repairs, RuntimeDescriptor, RuntimeLifecycleAction, RuntimeProbeSpec,
 };
+pub use setup::{execute_setup, RuntimeSetupResult, SetupOptions, SetupReport};
