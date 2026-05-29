@@ -1,7 +1,7 @@
 use agent_doctor_core::{
     build_repair_preview_from_bundle, execute_repair, list_runtime_backup_ids,
-    probe_health_summary, probe_runtime, restore_runtime_backup, ProbeStatus, RepairExecuteOptions,
-    RepairRisk,
+    probe_health_summary, probe_runtime, restore_runtime_backup, runtime_supports_playbook,
+    suggest_runtime_repairs, ProbeStatus, RepairExecuteOptions, RepairRisk,
 };
 use anyhow::Result;
 
@@ -29,7 +29,7 @@ fn run_preview(runtime: &str) -> Result<()> {
     println!("Runtime: {}", plan.runtime_id);
     println!("Summary: {}\n", plan.summary);
 
-    if runtime == "hermes" {
+    if runtime_supports_playbook(runtime) {
         let backups = list_runtime_backup_ids(runtime)?;
         if !backups.is_empty() {
             println!("Recent backups (for --rollback):");
@@ -38,6 +38,21 @@ fn run_preview(runtime: &str) -> Result<()> {
             }
             println!();
         }
+    }
+
+    let suggested = suggest_runtime_repairs(runtime, &report);
+    if !suggested.is_empty() {
+        println!("Suggested fixes (use --apply to run auto-fixable items):");
+        for item in &suggested {
+            let mode = if item.auto_fixable {
+                "auto-fixable"
+            } else {
+                "manual"
+            };
+            println!("  - {} [{mode}]", item.title);
+            println!("    {}", item.description);
+        }
+        println!();
     }
 
     println!("Rule-based probe checks:");

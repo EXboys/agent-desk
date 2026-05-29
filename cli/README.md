@@ -20,7 +20,7 @@ cargo run -p agent-doctor -- doctor --json
 | `doctor` | Implemented (OpenClaw, Hermes, Claude Code, Codex discovery) |
 | `profile list/init/use` | Implemented (Hermes model switching) |
 | `config show` | Implemented (Hermes) |
-| `repair <runtime>` | Read-only probes + safety preview implemented; runtime-specific repair execution planned |
+| `repair <runtime>` | Probes + preview; Hermes auto-fix (config + official install when binary missing) with `--apply` |
 | `setup` | Stub |
 | `sync` | Stub |
 | `policy pull` | Stub |

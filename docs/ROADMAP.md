@@ -25,10 +25,11 @@
 | Duplicate API key env entries deduped | Shipped |
 | Fill empty `model.*` from active profile | Shipped |
 | Missing API key → `.env` placeholder + local guide (no secret fill) | Shipped |
+| Install Hermes via official `install.sh` / `install.ps1` when binary missing | Shipped |
 | Rollback from backup directory | Shipped (CLI + desktop) |
 | AI-generated repair plans / free-form shell | Not planned for v1 |
 | Auto-fill or upload API keys | Not planned |
-| `install` / `update` runtime binaries | Planned |
+| `install` / `update` runtime binaries | Hermes: shipped via official installer (`repair hermes --apply`); other runtimes planned |
 | OpenClaw / Claude / Codex rule playbooks | Planned |
 
 ## P1 — Desktop tray

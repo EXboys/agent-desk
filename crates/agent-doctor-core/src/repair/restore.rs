@@ -4,7 +4,7 @@ use std::path::Path;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::adapters::adapter_by_id;
+use crate::runtime::adapter_by_id;
 use crate::repair::{backups_root, BackupSnapshot, SensitivityLevel, SnapshotFile};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

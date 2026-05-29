@@ -67,6 +67,7 @@ Runtime-specific rule playbooks extend step 4. **Hermes v1 (shipped):**
 - deduplicate repeated API key env entries (keep last non-empty value)
 - fill missing/empty `model.*` fields from the active Agent Doctor profile preset
 - when the provider API key is missing: append a `VAR=` placeholder to `~/.hermes/.env` (or create the file) and write a local guide under `~/.config/agent-doctor/guides/hermes-api-key-<VAR>.md`
+- when `hermes` is not on PATH: run the official Hermes installer script (same approach as [CC Switch](https://github.com/farion1231/cc-switch); requires network and user confirmation via `--apply`)
 
 **Never shipped / not planned for v1:** auto-filling or uploading API keys; AI choosing arbitrary shell commands.
 

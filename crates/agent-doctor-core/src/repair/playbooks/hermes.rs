@@ -6,6 +6,7 @@ use serde_yaml::{Mapping, Value};
 
 use crate::adapters::util::home_join;
 use crate::adapters::HermesAdapter;
+use crate::lifecycle::{run_hermes_lifecycle, HermesLifecycleAction};
 use crate::presets::{load_profiles, HermesProfilePreset};
 use crate::probe::{ProbeStatus, RuntimeProbeReport};
 use crate::repair::{SkippedRepairAction, SuggestedRepair};
@@ -23,6 +24,17 @@ pub fn suggest_hermes_repairs(probe: &RuntimeProbeReport) -> Vec<SuggestedRepair
     let has_profile = active_hermes_preset().is_ok();
 
     for check in &probe.checks {
+        if check.id == "binary.exists" && check.status == ProbeStatus::Fail {
+            items.push(SuggestedRepair {
+                id: "fix-hermes-install".to_string(),
+                title: "Install Hermes Agent".to_string(),
+                description: "Run the official Hermes installer (same approach as CC Switch). \
+                    Requires network access."
+                    .to_string(),
+                auto_fixable: true,
+            });
+        }
+
         if check.id.starts_with("hermes.env.permissions:") && check.status == ProbeStatus::Warn {
             items.push(SuggestedRepair {
                 id: "fix-hermes-env-permissions".to_string(),
@@ -80,6 +92,16 @@ pub fn suggest_hermes_repairs(probe: &RuntimeProbeReport) -> Vec<SuggestedRepair
 
 pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApplyResult> {
     let mut result = PlaybookApplyResult::default();
+
+    if hermes_needs_install(probe) {
+        match run_hermes_lifecycle(HermesLifecycleAction::Install) {
+            Ok(()) => result.executed.push("fix-hermes-install".to_string()),
+            Err(error) => result.skipped.push(SkippedRepairAction {
+                id: "fix-hermes-install".to_string(),
+                reason: error.to_string(),
+            }),
+        }
+    }
 
     for check in &probe.checks {
         if check.id.starts_with("hermes.env.permissions:") && check.status == ProbeStatus::Warn {
@@ -139,6 +161,12 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
     }
 
     Ok(result)
+}
+
+fn hermes_needs_install(probe: &RuntimeProbeReport) -> bool {
+    probe.checks.iter().any(|check| {
+        check.id == "binary.exists" && check.status == ProbeStatus::Fail
+    })
 }
 
 fn needs_api_key_scaffold(probe: &RuntimeProbeReport) -> bool {
@@ -424,6 +452,8 @@ pub fn dedupe_env_key_lines(raw: &str, key: &str) -> Result<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::probe::{ProbeCheck, ProbeSeverity, ProbeStatus};
+    use crate::repair::SensitivityLevel;
     use std::io::Write;
     use std::os::unix::fs::PermissionsExt;
 
@@ -461,5 +491,26 @@ mod tests {
             let metadata = fs::metadata(&path).expect("metadata");
             assert_eq!(metadata.permissions().mode() & 0o777, 0o600);
         }
+    }
+
+    #[test]
+    fn suggest_install_when_binary_missing() {
+        let probe = RuntimeProbeReport {
+            runtime_id: "hermes".to_string(),
+            display_name: "Hermes".to_string(),
+            binary_name: "hermes".to_string(),
+            checks: vec![ProbeCheck {
+                id: "binary.exists".to_string(),
+                title: "Binary exists".to_string(),
+                status: ProbeStatus::Fail,
+                severity: ProbeSeverity::Error,
+                message: "hermes was not found".to_string(),
+                details: vec![],
+                sensitivity: SensitivityLevel::Public,
+            }],
+            facts: vec![],
+        };
+        let items = suggest_hermes_repairs(&probe);
+        assert!(items.iter().any(|item| item.id == "fix-hermes-install"));
     }
 }

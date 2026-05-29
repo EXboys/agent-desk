@@ -5,12 +5,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-use super::playbooks::apply_hermes_playbook;
 use super::{
     build_repair_preview_from_bundle, AuditReport, BackupSnapshot, RedactionPolicy, Redactor,
     RepairAction, RepairActionKind, RepairPlan, SensitivityLevel, SnapshotFile,
 };
-use crate::adapters::adapter_by_id;
+use crate::runtime::{
+    adapter_by_id, apply_runtime_playbook, run_runtime_lifecycle, runtime_supports_lifecycle,
+    runtime_supports_playbook, RuntimeLifecycleAction,
+};
 use crate::probe::{probe_runtime, ProbeStatus, RuntimeProbeReport};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -52,8 +54,8 @@ pub fn execute_repair(
     let mut skipped_actions = Vec::new();
 
     let mut guide_path = None;
-    if options.apply_confirmed_writes && runtime_id == "hermes" {
-        let playbook = apply_hermes_playbook(&before_probe)?;
+    if options.apply_confirmed_writes && runtime_supports_playbook(runtime_id) {
+        let playbook = apply_runtime_playbook(runtime_id, &before_probe)?;
         guide_path = playbook.guide_path.map(|path| path.display().to_string());
         executed_action_ids.extend(playbook.executed);
         skipped_actions.extend(playbook.skipped);
@@ -131,9 +133,9 @@ fn execute_planned_action(
                     "pass --apply to run confirmed config patches".to_string(),
                 );
             }
-            if runtime_id == "hermes" && action.id == "apply-confirmed-fixes" {
+            if runtime_supports_playbook(runtime_id) && action.id == "apply-confirmed-fixes" {
                 return ActionRunResult::Skipped(
-                    "Hermes rule playbook already evaluated probe findings".to_string(),
+                    "runtime rule playbook already evaluated probe findings".to_string(),
                 );
             }
             if action.requires_confirmation {
@@ -149,7 +151,26 @@ fn execute_planned_action(
             "restore is only available as an explicit rollback workflow".to_string(),
         ),
         RepairActionKind::InstallRuntime | RepairActionKind::UpdateRuntime => {
-            ActionRunResult::Skipped(format!("{} is not implemented yet", action.title))
+            if !options.apply_confirmed_writes {
+                return ActionRunResult::Skipped(
+                    "pass --apply to run confirmed install/update actions".to_string(),
+                );
+            }
+            if !runtime_supports_lifecycle(runtime_id) {
+                return ActionRunResult::Skipped(format!(
+                    "{} is not implemented for runtime '{runtime_id}'",
+                    action.title
+                ));
+            }
+            let lifecycle = match action.kind {
+                RepairActionKind::InstallRuntime => RuntimeLifecycleAction::Install,
+                RepairActionKind::UpdateRuntime => RuntimeLifecycleAction::Update,
+                _ => unreachable!("matched install/update arm"),
+            };
+            match run_runtime_lifecycle(runtime_id, lifecycle) {
+                Ok(()) => ActionRunResult::Executed,
+                Err(error) => ActionRunResult::Skipped(error.to_string()),
+            }
         }
         RepairActionKind::RemoveBrokenSymlink => {
             ActionRunResult::Skipped("symlink cleanup playbook not implemented yet".to_string())

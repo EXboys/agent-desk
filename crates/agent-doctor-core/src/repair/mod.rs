@@ -9,7 +9,7 @@ pub use execute::{
     backups_root, execute_repair, probe_health_summary, RepairExecuteOptions, RepairExecuteReport,
     SkippedRepairAction,
 };
-pub use playbooks::{suggest_hermes_repairs, suggest_runtime_repairs};
+pub use playbooks::{apply_hermes_playbook, suggest_hermes_repairs, PlaybookApplyResult};
 pub use restore::{
     list_runtime_backup_ids, load_backup_snapshot, restore_backup_snapshot, restore_runtime_backup,
     RestoreReport,

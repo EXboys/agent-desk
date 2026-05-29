@@ -6,7 +6,8 @@ use anyhow::{bail, Context, Result};
 use serde::{Deserialize, Serialize};
 
 use crate::adapter::{ApplyReport, RuntimeModelPreset};
-use crate::adapters::{adapter_by_id, all_adapters, HermesAdapter};
+use crate::adapters::{HermesAdapter};
+use crate::runtime::{adapter_by_id, all_adapters};
 
 const PROFILES_FILE: &str = "profiles.yaml";
 const OLLAMA_DEFAULT_BASE_URL: &str = "http://127.0.0.1:11434/v1";
