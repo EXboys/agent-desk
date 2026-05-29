@@ -1,20 +1,42 @@
 mod execute;
+mod llm;
+mod mask;
+mod planner;
 mod playbooks;
+mod repair_loop;
 mod restore;
 mod suggested;
+mod tools;
 
 use serde::{Deserialize, Serialize};
 
 pub use execute::{
-    backups_root, execute_repair, probe_health_summary, RepairExecuteOptions, RepairExecuteReport,
-    SkippedRepairAction,
+    backups_root, execute_repair, probe_health_summary, probe_issue_score, RepairExecuteOptions,
+    RepairExecuteReport, SkippedRepairAction,
 };
-pub use playbooks::{apply_hermes_playbook, suggest_hermes_repairs, PlaybookApplyResult};
+pub use llm::LlmConfig;
+pub use mask::{
+    load_masked_config_snippets, mask_config_file, mask_env_file_content, mask_secret_value,
+    merge_env_with_vault, unmask_file_content, MaskedFileSnippet, SecretVault,
+};
+pub use planner::{
+    build_masked_repair_context, AiRepairPlanner, DeterministicPlanner, MaskedRepairContext,
+    PlannerOptions, PlannerResult, RepairPlanner,
+};
+pub use playbooks::{
+    apply_hermes_playbook, apply_hermes_playbook_filtered, suggest_hermes_repairs,
+    PlaybookApplyResult,
+};
+pub use repair_loop::{execute_repair_loop, RepairLoopOptions, RepairLoopReport, RepairLoopRound};
 pub use restore::{
     list_runtime_backup_ids, load_backup_snapshot, restore_backup_snapshot, restore_runtime_backup,
     RestoreReport,
 };
 pub use suggested::SuggestedRepair;
+pub use tools::{
+    allowed_paths_for_runtime, bash_command_allowed, parse_tool_call, RepairToolCall,
+    RepairToolExecutor, RepairToolKind, RepairToolResult,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]

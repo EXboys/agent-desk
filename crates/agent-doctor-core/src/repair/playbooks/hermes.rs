@@ -91,9 +91,16 @@ pub fn suggest_hermes_repairs(probe: &RuntimeProbeReport) -> Vec<SuggestedRepair
 }
 
 pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApplyResult> {
+    apply_hermes_playbook_filtered(probe, None)
+}
+
+pub fn apply_hermes_playbook_filtered(
+    probe: &RuntimeProbeReport,
+    only_ids: Option<&[String]>,
+) -> Result<PlaybookApplyResult> {
     let mut result = PlaybookApplyResult::default();
 
-    if hermes_needs_install(probe) {
+    if should_run("fix-hermes-install", only_ids) && hermes_needs_install(probe) {
         match run_hermes_lifecycle(HermesLifecycleAction::Install) {
             Ok(()) => result.executed.push("fix-hermes-install".to_string()),
             Err(error) => result.skipped.push(SkippedRepairAction {
@@ -104,7 +111,10 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
     }
 
     for check in &probe.checks {
-        if check.id.starts_with("hermes.env.permissions:") && check.status == ProbeStatus::Warn {
+        if should_run("fix-hermes-env-permissions", only_ids)
+            && check.id.starts_with("hermes.env.permissions:")
+            && check.status == ProbeStatus::Warn
+        {
             match tighten_env_permissions() {
                 Ok(()) => result
                     .executed
@@ -116,7 +126,10 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
             }
         }
 
-        if check.id == "hermes.api_key.duplicates" && check.status == ProbeStatus::Warn {
+        if should_run("fix-hermes-api-key-duplicates", only_ids)
+            && check.id == "hermes.api_key.duplicates"
+            && check.status == ProbeStatus::Warn
+        {
             match dedupe_api_key_env(probe) {
                 Ok(()) => result
                     .executed
@@ -129,11 +142,13 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
         }
     }
 
-    if probe.checks.iter().any(|check| {
-        check.id.starts_with("config.schema:")
-            && check.status == ProbeStatus::Warn
-            && check.message.contains("model.")
-    }) {
+    if should_run("fix-hermes-config-from-profile", only_ids)
+        && probe.checks.iter().any(|check| {
+            check.id.starts_with("config.schema:")
+                && check.status == ProbeStatus::Warn
+                && check.message.contains("model.")
+        })
+    {
         match apply_hermes_config_from_profile() {
             Ok(()) => result
                 .executed
@@ -145,7 +160,7 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
         }
     }
 
-    if needs_api_key_scaffold(probe) {
+    if should_run("fix-hermes-api-key-scaffold", only_ids) && needs_api_key_scaffold(probe) {
         match prepare_api_key_env_scaffold(probe) {
             Ok(guide_path) => {
                 result
@@ -161,6 +176,12 @@ pub fn apply_hermes_playbook(probe: &RuntimeProbeReport) -> Result<PlaybookApply
     }
 
     Ok(result)
+}
+
+fn should_run(action_id: &str, only_ids: Option<&[String]>) -> bool {
+    only_ids
+        .map(|ids| ids.iter().any(|id| id == action_id))
+        .unwrap_or(true)
 }
 
 fn hermes_needs_install(probe: &RuntimeProbeReport) -> bool {

@@ -25,16 +25,21 @@ pub use probe::{
     probe_all_runtimes, probe_runtime, ProbeCheck, ProbeSeverity, ProbeStatus, RuntimeProbeReport,
 };
 pub use repair::{
-    apply_hermes_playbook, build_repair_preview, build_repair_preview_from_bundle, execute_repair,
-    list_runtime_backup_ids, probe_health_summary, restore_runtime_backup, suggest_hermes_repairs,
-    AuditReport, BackupSnapshot, DiagnosticBundle, DiagnosticFact, PlaybookApplyResult,
-    RedactedFact, RedactionPolicy, Redactor, RepairAction, RepairActionKind, RepairExecuteOptions,
-    RepairExecuteReport, RepairPlan, RepairRisk, RestoreReport, SensitivityLevel,
-    SkippedRepairAction, SnapshotFile, SuggestedRepair,
+    allowed_paths_for_runtime, apply_hermes_playbook, apply_hermes_playbook_filtered,
+    build_repair_preview, build_repair_preview_from_bundle, execute_repair, execute_repair_loop,
+    list_runtime_backup_ids, mask_secret_value, merge_env_with_vault, probe_health_summary,
+    probe_issue_score, restore_runtime_backup, suggest_hermes_repairs, unmask_file_content,
+    AiRepairPlanner, AuditReport, BackupSnapshot, DeterministicPlanner, DiagnosticBundle,
+    DiagnosticFact, LlmConfig, MaskedFileSnippet, MaskedRepairContext, PlannerOptions,
+    PlannerResult, PlaybookApplyResult, RedactedFact, RedactionPolicy, Redactor, RepairAction,
+    RepairActionKind, RepairExecuteOptions, RepairExecuteReport, RepairLoopOptions,
+    RepairLoopReport, RepairLoopRound, RepairPlan, RepairPlanner, RepairRisk, RepairToolCall,
+    RepairToolExecutor, RepairToolKind, RepairToolResult, RestoreReport, SecretVault,
+    SensitivityLevel, SkippedRepairAction, SnapshotFile, SuggestedRepair,
 };
 pub use runtime::{adapter_by_id, all_adapters};
 pub use runtime::{
-    all_runtime_ids, apply_runtime_playbook, descriptor_by_id, run_runtime_lifecycle,
-    runtime_supports_lifecycle, runtime_supports_playbook, suggest_runtime_repairs,
-    RuntimeDescriptor, RuntimeLifecycleAction, RuntimeProbeSpec,
+    all_runtime_ids, apply_runtime_playbook, apply_runtime_playbook_filtered, descriptor_by_id,
+    run_runtime_lifecycle, runtime_supports_lifecycle, runtime_supports_playbook,
+    suggest_runtime_repairs, RuntimeDescriptor, RuntimeLifecycleAction, RuntimeProbeSpec,
 };

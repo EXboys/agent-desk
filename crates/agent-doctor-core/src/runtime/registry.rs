@@ -11,7 +11,8 @@ use crate::probe::runtimes::{
 use crate::probe::ParsedConfig;
 use crate::probe::{ProbeCheck, RuntimeProbeReport};
 use crate::repair::{
-    apply_hermes_playbook, suggest_hermes_repairs, PlaybookApplyResult, SuggestedRepair,
+    apply_hermes_playbook, apply_hermes_playbook_filtered, suggest_hermes_repairs,
+    PlaybookApplyResult, SuggestedRepair,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -205,9 +206,23 @@ pub fn apply_runtime_playbook(
     runtime_id: &str,
     probe: &RuntimeProbeReport,
 ) -> Result<PlaybookApplyResult> {
+    apply_runtime_playbook_filtered(runtime_id, probe, None)
+}
+
+pub fn apply_runtime_playbook_filtered(
+    runtime_id: &str,
+    probe: &RuntimeProbeReport,
+    only_ids: Option<&[String]>,
+) -> Result<PlaybookApplyResult> {
+    if runtime_id == "hermes" {
+        return apply_hermes_playbook_filtered(probe, only_ids);
+    }
     let apply = descriptor_by_id(runtime_id)
         .and_then(|entry| entry.apply_playbook)
         .with_context(|| format!("runtime '{runtime_id}' has no repair playbook"))?;
+    if only_ids.is_some() {
+        anyhow::bail!("runtime '{runtime_id}' does not support filtered playbook execution yet");
+    }
     apply(probe)
 }
 

@@ -233,7 +233,7 @@ pub fn snapshot_config_files(
     Ok(files)
 }
 
-fn build_audit_report(
+pub(crate) fn build_audit_report(
     runtime_id: &str,
     _plan: &RepairPlan,
     backup: &BackupSnapshot,
@@ -279,6 +279,20 @@ pub fn probe_health_summary(report: &RuntimeProbeReport) -> String {
     }
 
     format!("pass={pass} warn={warn} fail={fail} not_checked={not_checked} n/a={not_applicable}")
+}
+
+/// Lower is healthier — used by the repair loop to detect progress between rounds.
+pub fn probe_issue_score(report: &RuntimeProbeReport) -> u32 {
+    let mut score = 0u32;
+    for check in &report.checks {
+        score += match check.status {
+            ProbeStatus::Fail => 100,
+            ProbeStatus::Warn => 10,
+            ProbeStatus::NotChecked => 1,
+            ProbeStatus::Pass | ProbeStatus::NotApplicable => 0,
+        };
+    }
+    score
 }
 
 fn unix_seconds() -> u64 {

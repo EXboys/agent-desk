@@ -79,3 +79,55 @@ agent-doctor repair hermes --rollback --backup hermes-2026-05-28T12-00-00
 ```
 
 The desktop app shows suggested fixes after diagnosis, runs apply (backup → playbook → re-probe → audit), can open the API key guide, and can roll back from the latest backup.
+
+## Bounded repair loop (generic orchestration)
+
+`agent-doctor repair <runtime> --loop` runs a runtime-agnostic loop (up to 5 rounds) through the unified runtime registry:
+
+1. `probe_runtime`
+2. `suggest_runtime_repairs` (per-runtime rules, registered in `RUNTIME_REGISTRY`)
+3. build **masked** repair context (secrets as `{{SECRET:n}}` vault tokens — never sent to an LLM payload)
+4. plan fixes (`--plan deterministic` default; `--plan ai` reserved for a future LLM planner that only returns typed `action_ids`)
+5. with `--apply --loop`: `apply_runtime_playbook` (typed actions + backup already taken)
+6. re-probe and stop when there is no progress or no auto-fixable work remains
+
+Preview without writes:
+
+```bash
+agent-doctor repair hermes --loop
+```
+
+Execute:
+
+```bash
+agent-doctor repair hermes --apply --loop
+agent-doctor repair hermes --apply --loop --plan ai   # placeholder: same as deterministic today
+```
+
+New runtimes only need registry entries and playbooks; they do not need a separate loop implementation. Secret **restore** after any future LLM `.env` proposals happens locally via `merge_env_with_vault` (reject model-invented keys).
+
+## Agent tools (`read` / `edit` / `bash`)
+
+With `--plan ai`, the repair loop runs an **agent tool layer** before playbook execution:
+
+| Tool | To LLM | Local execute |
+|------|--------|----------------|
+| `list_dir` | file/dir names + sizes only | scoped to adapter config roots |
+| `grep_files` | `path:line:masked_text` hits | literal search under allowed paths |
+| `read_file` | numbered + masked body (`{{SECRET:n}}`) | reads disk, masks into vault |
+| `search_replace` | `old_string` / `new_string` with tokens | unmask → unique match → replace → diff preview |
+| `write_file` | full masked content | unmask → write (small/new files only) |
+| `patch_config` | `key_path` + scalar value | YAML/JSON/TOML dot-path set |
+| `bash` | masked command | unmask → allowlist → run |
+
+Secrets never leave the machine in plaintext. The session `SecretVault` is `#[serde(skip)]` on planner context.
+
+Configure the planner LLM via environment:
+
+- `AGENT_DOCTOR_LLM_API_KEY` or `OPENAI_API_KEY`
+- `AGENT_DOCTOR_LLM_API_URL` (default OpenAI-compatible `/v1/chat/completions`)
+- `AGENT_DOCTOR_LLM_MODEL` (default `gpt-4o-mini`)
+
+Without an API key, `--plan ai` falls back to the deterministic planner.
+
+Bash is **not** a free shell: only Hermes install/update, `hermes --version`, and `chmod` on `.env` paths are allowed. Edits are limited to runtime config paths from the adapter registry.

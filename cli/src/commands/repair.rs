@@ -1,19 +1,25 @@
 use agent_doctor_core::{
-    build_repair_preview_from_bundle, execute_repair, list_runtime_backup_ids,
-    probe_health_summary, probe_runtime, restore_runtime_backup, runtime_supports_playbook,
-    suggest_runtime_repairs, ProbeStatus, RepairExecuteOptions, RepairRisk,
+    build_repair_preview_from_bundle, execute_repair, execute_repair_loop, list_runtime_backup_ids,
+    probe_health_summary, probe_issue_score, probe_runtime, restore_runtime_backup,
+    runtime_supports_playbook, suggest_runtime_repairs, ProbeStatus, RepairExecuteOptions,
+    RepairLoopOptions, RepairRisk,
 };
-use anyhow::Result;
+use anyhow::{bail, Result};
 
 pub fn run(
     runtime: &str,
     apply: bool,
     rollback: bool,
     backup: Option<&str>,
+    repair_loop: bool,
+    plan: &str,
     json: bool,
 ) -> Result<()> {
     if rollback {
         return run_rollback(runtime, backup, json);
+    }
+    if repair_loop {
+        return run_loop(runtime, apply, plan, json);
     }
     if apply {
         return run_execute(runtime, json);
@@ -96,7 +102,99 @@ fn run_preview(runtime: &str) -> Result<()> {
     println!(
         "\nNo files were modified. Run with --apply to execute backup, rule fixes, verification, and audit."
     );
+    println!("Bounded loop: agent-doctor repair {runtime} --loop [--apply] [--plan ai]");
     println!("Rollback: agent-doctor repair {runtime} --rollback [--backup <id>]");
+    Ok(())
+}
+
+fn run_loop(runtime: &str, apply: bool, plan: &str, json: bool) -> Result<()> {
+    let use_ai_planner = match plan {
+        "deterministic" => false,
+        "ai" => true,
+        other => bail!("unknown --plan '{other}' (use deterministic or ai)"),
+    };
+
+    let report = execute_repair_loop(
+        runtime,
+        &RepairLoopOptions {
+            apply_confirmed_writes: apply,
+            max_rounds: None,
+            use_ai_planner,
+        },
+    )?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    println!(
+        "Agent Doctor — repair loop{}\n",
+        if apply { " (apply)" } else { " (preview)" }
+    );
+    println!("Runtime: {}", report.runtime_id);
+    println!(
+        "Issue score: {} -> {}",
+        probe_issue_score(&report.before_probe),
+        probe_issue_score(&report.after_probe)
+    );
+    println!(
+        "Health: {} -> {}",
+        probe_health_summary(&report.before_probe),
+        probe_health_summary(&report.after_probe)
+    );
+
+    for round in &report.rounds {
+        println!(
+            "\nRound {}: {} (score={})",
+            round.round, round.probe_summary, round.issue_score
+        );
+        if !round.planned_action_ids.is_empty() {
+            println!("  planned: {}", round.planned_action_ids.join(", "));
+        }
+        if !round.executed_action_ids.is_empty() {
+            println!("  executed: {}", round.executed_action_ids.join(", "));
+        }
+        for item in &round.skipped_actions {
+            println!("  skipped {}: {}", item.id, item.reason);
+        }
+        if !round.tool_trace.is_empty() {
+            println!("  agent tools: {} call(s)", round.tool_trace.len());
+            for tool in &round.tool_trace {
+                let status = if tool.success { "ok" } else { "fail" };
+                println!(
+                    "    - {:?} [{status}] applied={}{}",
+                    tool.kind,
+                    tool.applied,
+                    tool.error
+                        .as_ref()
+                        .map(|reason| format!(" — {reason}"))
+                        .unwrap_or_default()
+                );
+                if let Some(diff) = &tool.preview_diff {
+                    println!("      diff:\n{diff}");
+                }
+            }
+        }
+    }
+
+    if !apply {
+        println!("\nPreview only — pass --apply --loop to execute fixes.");
+    } else {
+        println!(
+            "\nBackup: {} ({} file(s))",
+            report.backup.root,
+            report.backup.files.len()
+        );
+        if let Some(guide) = &report.guide_path {
+            println!("API key guide: {guide}");
+        }
+        println!("Audit: {}", report.audit.id);
+        println!(
+            "Rollback: agent-doctor repair {runtime} --rollback --backup {}",
+            report.backup.id
+        );
+    }
     Ok(())
 }
 

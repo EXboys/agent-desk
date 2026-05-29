@@ -45,6 +45,12 @@ enum Commands {
         /// Backup id to restore (with --rollback); default is latest for this runtime
         #[arg(long, requires = "rollback")]
         backup: Option<String>,
+        /// Bounded probe → plan → apply → verify loop (pair with --apply to execute fixes)
+        #[arg(long = "loop", conflicts_with = "rollback")]
+        repair_loop: bool,
+        /// Planner for --loop: deterministic (default) or ai (placeholder)
+        #[arg(long, default_value = "deterministic")]
+        plan: String,
         /// Emit JSON (with --apply or --rollback)
         #[arg(long)]
         json: bool,
@@ -129,8 +135,18 @@ fn main() -> Result<()> {
             apply,
             rollback,
             backup,
+            repair_loop,
+            plan,
             json,
-        } => commands::repair::run(&runtime, apply, rollback, backup.as_deref(), json)?,
+        } => commands::repair::run(
+            &runtime,
+            apply,
+            rollback,
+            backup.as_deref(),
+            repair_loop,
+            &plan,
+            json,
+        )?,
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {
