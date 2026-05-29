@@ -5,8 +5,8 @@ use serde_json::json;
 use serde_yaml::{Mapping, Value as YamlValue};
 use toml::Value as TomlValue;
 
-use crate::adapters::HermesAdapter;
 use crate::adapters::util::home_join;
+use crate::adapters::HermesAdapter;
 use crate::setup::{backup_file, ensure_parent, RuntimeSetupResult, COMPANY_API_KEY_ENV};
 
 pub fn apply_openclaw(gateway_url: &str, _api_key: &str) -> AnyhowResult<RuntimeSetupResult> {
