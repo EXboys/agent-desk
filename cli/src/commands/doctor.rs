@@ -1,11 +1,35 @@
-use agent_doctor_core::run_doctor;
+use agent_doctor_core::{
+    build_explain_input, explain_runtime, probe_all_runtimes, probe_issue_score, run_doctor,
+};
 use anyhow::Result;
 
-pub fn run(json: bool) -> Result<()> {
+use crate::commands::print_explain_report;
+
+pub fn run(json: bool, explain: bool) -> Result<()> {
     let report = run_doctor();
 
     if json {
         println!("{}", serde_json::to_string_pretty(&report)?);
+        if explain {
+            for runtime in &report.runtimes {
+                let probe = probe_all_runtimes()
+                    .into_iter()
+                    .find(|item| item.runtime_id == runtime.id);
+                if let Some(probe) = probe {
+                    if probe_issue_score(&probe) > 0 {
+                        let input = build_explain_input(&runtime.id, &probe, None);
+                        let explain_report = explain_runtime(&input)?;
+                        println!(
+                            "\n{}",
+                            serde_json::to_string_pretty(&serde_json::json!({
+                                "runtime": runtime.id,
+                                "explain": explain_report,
+                            }))?
+                        );
+                    }
+                }
+            }
+        }
         return Ok(());
     }
 
@@ -49,6 +73,21 @@ pub fn run(json: bool) -> Result<()> {
             println!("  gateway: {url}");
         }
         println!();
+    }
+
+    if explain {
+        let probes = probe_all_runtimes();
+        for runtime in &report.runtimes {
+            if let Some(probe) = probes.iter().find(|item| item.runtime_id == runtime.id) {
+                if probe_issue_score(probe) > 0 {
+                    let input = build_explain_input(&runtime.id, probe, None);
+                    let explain_report = explain_runtime(&input)?;
+                    println!("---");
+                    print_explain_report(&runtime.id, &explain_report);
+                    println!();
+                }
+            }
+        }
     }
 
     Ok(())

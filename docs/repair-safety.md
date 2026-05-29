@@ -81,6 +81,24 @@ agent-doctor repair hermes --rollback --backup hermes-2026-05-28T12-00-00
 
 The desktop app shows suggested fixes after diagnosis, runs apply (backup → playbook → re-probe → audit), can open the API key guide, and can roll back from the latest backup.
 
+## Rule-based install + AI install
+
+`agent-doctor install <runtime>` works for every registered runtime:
+
+| Layer | Behavior |
+|-------|----------|
+| Rule install | When lifecycle hooks exist (Hermes, OpenClaw): official script → re-probe; logs under `~/.config/agent-doctor/logs/` |
+| No rules | Skip rule phase (e.g. Claude Code, Codex) → **AI install** via allowlisted bash |
+| Rule failed | **AI repair loop** automatically (read logs, retry allowlisted install, config fixes) |
+| After success | Optional `--plan ai` / `--repair` for remaining config issues |
+
+| Flag | Behavior |
+|-------|----------|
+| `--explain` | AI plain-language summary (probe + optional install log tail) |
+| `--plan ai` / `--repair` | After successful install, run AI or deterministic repair for other issues |
+
+Bash is **not** arbitrary: each runtime registers allowlisted install commands only.
+
 ## Bounded repair loop (generic orchestration)
 
 `agent-doctor repair <runtime> --loop` runs a runtime-agnostic loop (up to 5 rounds) through the unified runtime registry:
@@ -96,6 +114,11 @@ Preview without writes:
 
 ```bash
 agent-doctor repair hermes --loop
+agent-doctor install openclaw              # rule-based install (official script)
+agent-doctor install openclaw --explain      # install + AI failure/success explanation
+agent-doctor install openclaw --plan ai      # install + AI repair loop for remaining issues
+agent-doctor repair openclaw --explain     # AI diagnosis from probe (no writes)
+agent-doctor doctor --explain                # AI diagnosis per runtime with issues
 ```
 
 Execute:

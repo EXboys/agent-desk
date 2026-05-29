@@ -17,10 +17,11 @@ cargo run -p agent-doctor -- doctor --json
 
 | Command | Status |
 |---------|--------|
-| `doctor` | Implemented (OpenClaw, Hermes, Claude Code, Codex discovery) |
+| `doctor` | Implemented (OpenClaw, Hermes, Claude Code, Codex discovery); `--explain` for AI diagnosis |
+| `install <runtime>` | All registered runtimes: rule install when available; else / on failure → AI install |
 | `profile list/init/use` | Implemented (Hermes model switching) |
 | `config show` | Implemented (Hermes) |
-| `repair <runtime>` | Probes + preview; Hermes auto-fix (config + official install when binary missing) with `--apply` |
+| `repair <runtime>` | Probes + preview; Hermes/OpenClaw auto-fix with `--apply`; `--explain` for AI diagnosis |
 | `setup` | Stub |
 | `sync` | Stub |
 | `policy pull` | Stub |

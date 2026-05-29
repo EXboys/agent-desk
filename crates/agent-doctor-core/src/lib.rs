@@ -1,6 +1,7 @@
 pub mod adapter;
 pub mod adapters;
 pub mod doctor;
+pub mod install;
 pub mod lifecycle;
 pub mod presets;
 pub mod probe;
@@ -14,6 +15,9 @@ pub use adapter::{
 };
 pub use adapters::{CodexAdapter, HermesAdapter, HermesSettings, OpenClawAdapter};
 pub use doctor::{run_doctor, DoctorReport, RuntimeDoctorResult};
+pub use install::{
+    build_explain_input, execute_install, needs_binary_install, InstallOptions, InstallReport,
+};
 pub use lifecycle::{
     hermes_shell_command, openclaw_shell_command, run_hermes_lifecycle, run_openclaw_lifecycle,
     HermesLifecycleAction, OpenClawLifecycleAction,
@@ -30,12 +34,13 @@ pub use probe::{
 pub use repair::{
     allowed_paths_for_runtime, apply_hermes_playbook, apply_hermes_playbook_filtered,
     build_repair_preview, build_repair_preview_from_bundle, execute_repair, execute_repair_loop,
-    list_runtime_backup_ids, mask_secret_value, merge_env_with_vault, probe_health_summary,
-    probe_issue_score, restore_runtime_backup, suggest_hermes_repairs, unmask_file_content,
-    AiRepairPlanner, AuditReport, BackupSnapshot, DeterministicPlanner, DiagnosticBundle,
-    DiagnosticFact, LlmConfig, MaskedFileSnippet, MaskedRepairContext, PlannerOptions,
-    PlannerResult, PlaybookApplyResult, RedactedFact, RedactionPolicy, Redactor, RepairAction,
-    RepairActionKind, RepairExecuteOptions, RepairExecuteReport, RepairLoopOptions,
+    explain_runtime, list_runtime_backup_ids, mask_secret_value, merge_env_with_vault,
+    probe_health_summary, probe_issue_score, restore_runtime_backup, suggest_hermes_repairs,
+    unmask_file_content, AiRepairPlanner, AuditReport, BackupSnapshot, DeterministicPlanner,
+    DiagnosticBundle, DiagnosticFact, ExplainCheck, ExplainInput, ExplainInstallFailure,
+    ExplainReport, ExplainSuggestion, LlmConfig, MaskedFileSnippet, MaskedRepairContext,
+    PlannerOptions, PlannerResult, PlaybookApplyResult, RedactedFact, RedactionPolicy, Redactor,
+    RepairAction, RepairActionKind, RepairExecuteOptions, RepairExecuteReport, RepairLoopOptions,
     RepairLoopReport, RepairLoopRound, RepairPlan, RepairPlanner, RepairRisk, RepairToolCall,
     RepairToolExecutor, RepairToolKind, RepairToolResult, RestoreReport, SecretVault,
     SensitivityLevel, SkippedRepairAction, SnapshotFile, SuggestedRepair,

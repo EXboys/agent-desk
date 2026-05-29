@@ -1,4 +1,5 @@
 mod execute;
+mod explain;
 mod llm;
 mod mask;
 mod planner;
@@ -13,6 +14,10 @@ use serde::{Deserialize, Serialize};
 pub use execute::{
     backups_root, execute_repair, probe_health_summary, probe_issue_score, RepairExecuteOptions,
     RepairExecuteReport, SkippedRepairAction,
+};
+pub use explain::{
+    explain_runtime, ExplainCheck, ExplainInput, ExplainInstallFailure, ExplainReport,
+    ExplainSuggestion,
 };
 pub use llm::LlmConfig;
 pub use mask::{

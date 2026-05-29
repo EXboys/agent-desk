@@ -5,7 +5,7 @@ use super::mask::{load_masked_config_snippets, MaskedFileSnippet, SecretVault};
 use super::tools::{parse_tool_call, RepairToolExecutor, RepairToolResult};
 use super::{RedactedFact, RedactionPolicy, Redactor, SuggestedRepair};
 use crate::probe::RuntimeProbeReport;
-use crate::runtime::adapter_by_id;
+use crate::runtime::{adapter_by_id, runtime_allowed_bash_commands};
 
 /// Input for repair planning (LLM or deterministic). Secrets appear as vault tokens only.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -106,10 +106,24 @@ fn run_agent_loop(
 ) -> anyhow::Result<PlannerResult> {
     use serde_json::json;
 
+    let allowed_bash = runtime_allowed_bash_commands(&context.runtime_id);
+    let bash_allowlist = if allowed_bash.is_empty() {
+        "none registered".to_string()
+    } else {
+        allowed_bash.join("; ")
+    };
+
     let mut messages = vec![
         json!({
             "role": "system",
-            "content": "You are Agent Doctor repair planner. Start with list_dir or grep_files to locate config, then read_file. Prefer search_replace for surgical edits; use patch_config for YAML/JSON/TOML keys; use write_file only for new or tiny files. read_file line numbers must NOT appear in old_string. Use {{SECRET:n}} tokens for secrets. bash only for allowlisted repair commands. When done, reply with JSON: {\"action_ids\":[\"fix-...\"]}"
+            "content": format!(
+                "You are Agent Doctor repair planner. Start with list_dir or grep_files to locate config, then read_file. \
+                Prefer search_replace for surgical edits; use patch_config for YAML/JSON/TOML keys; use write_file only for new or tiny files. \
+                read_file line numbers must NOT appear in old_string. Use {{SECRET:n}} tokens for secrets. \
+                When the binary is missing, use bash with an allowlisted install command. \
+                bash allowlist for this runtime: {bash_allowlist}. \
+                When done, reply with JSON: {{\"action_ids\":[\"fix-...\"]}}"
+            )
         }),
         json!({
             "role": "user",

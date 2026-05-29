@@ -21,6 +21,29 @@ enum Commands {
         /// Emit JSON instead of human-readable output
         #[arg(long)]
         json: bool,
+        /// AI explanation of probe results (per runtime with issues)
+        #[arg(long)]
+        explain: bool,
+    },
+    /// Rule-based install for registered runtimes (rule install when available, else AI)
+    Install {
+        /// Runtime id (e.g. openclaw, hermes)
+        runtime: String,
+        /// AI diagnosis after install (or on failure)
+        #[arg(long)]
+        explain: bool,
+        /// After successful rule install, run AI repair loop for remaining issues
+        #[arg(long)]
+        plan: Option<String>,
+        /// After successful rule install, run deterministic repair loop when issues remain
+        #[arg(long)]
+        repair: bool,
+        /// Extra rule-based install retries on failure
+        #[arg(long, default_value_t = 0)]
+        retry: u8,
+        /// Emit JSON
+        #[arg(long)]
+        json: bool,
     },
     /// List, create, and switch local model presets
     Profile {
@@ -51,6 +74,9 @@ enum Commands {
         /// Planner for --loop: deterministic (default) or ai (placeholder)
         #[arg(long, default_value = "deterministic")]
         plan: String,
+        /// AI explanation of probe results and suggested fixes
+        #[arg(long)]
+        explain: bool,
         /// Emit JSON (with --apply or --rollback)
         #[arg(long)]
         json: bool,
@@ -115,7 +141,7 @@ enum PolicyAction {
 fn main() -> Result<()> {
     let cli = Cli::parse();
     match cli.command {
-        Commands::Doctor { json } => commands::doctor::run(json)?,
+        Commands::Doctor { json, explain } => commands::doctor::run(json, explain)?,
         Commands::Profile { action } => match action {
             ProfileAction::Init => commands::profile::init()?,
             ProfileAction::List => commands::profile::list()?,
@@ -130,6 +156,17 @@ fn main() -> Result<()> {
                 base_url,
             } => commands::config::set(&runtime, provider, model, base_url)?,
         },
+        Commands::Install {
+            runtime,
+            explain,
+            plan,
+            repair,
+            retry,
+            json,
+        } => {
+            let plan_ai = plan.as_deref() == Some("ai");
+            commands::install::run(&runtime, explain, plan_ai, repair, retry, json)?
+        }
         Commands::Repair {
             runtime,
             apply,
@@ -137,6 +174,7 @@ fn main() -> Result<()> {
             backup,
             repair_loop,
             plan,
+            explain,
             json,
         } => commands::repair::run(
             &runtime,
@@ -145,6 +183,7 @@ fn main() -> Result<()> {
             backup.as_deref(),
             repair_loop,
             &plan,
+            explain,
             json,
         )?,
         Commands::Setup { url, key } => commands::setup::run(&url, &key)?,

@@ -1,11 +1,14 @@
 use agent_doctor_core::{
-    build_repair_preview_from_bundle, execute_repair, execute_repair_loop, list_runtime_backup_ids,
-    probe_health_summary, probe_issue_score, probe_runtime, restore_runtime_backup,
-    runtime_supports_playbook, suggest_runtime_repairs, ProbeStatus, RepairExecuteOptions,
-    RepairLoopOptions, RepairRisk,
+    build_explain_input, build_repair_preview_from_bundle, execute_repair, execute_repair_loop,
+    explain_runtime, list_runtime_backup_ids, probe_health_summary, probe_issue_score,
+    probe_runtime, restore_runtime_backup, runtime_supports_playbook, suggest_runtime_repairs,
+    ProbeStatus, RepairExecuteOptions, RepairLoopOptions, RepairRisk,
 };
 use anyhow::{bail, Result};
 
+use crate::commands::print_explain_report;
+
+#[allow(clippy::too_many_arguments)]
 pub fn run(
     runtime: &str,
     apply: bool,
@@ -13,8 +16,12 @@ pub fn run(
     backup: Option<&str>,
     repair_loop: bool,
     plan: &str,
+    explain: bool,
     json: bool,
 ) -> Result<()> {
+    if explain && !apply && !rollback && !repair_loop {
+        return run_explain(runtime, json);
+    }
     if rollback {
         return run_rollback(runtime, backup, json);
     }
@@ -25,6 +32,20 @@ pub fn run(
         return run_execute(runtime, json);
     }
     run_preview(runtime)
+}
+
+fn run_explain(runtime: &str, json: bool) -> Result<()> {
+    let probe = probe_runtime(runtime)?;
+    let input = build_explain_input(runtime, &probe, None);
+    let report = explain_runtime(&input)?;
+
+    if json {
+        println!("{}", serde_json::to_string_pretty(&report)?);
+        return Ok(());
+    }
+
+    print_explain_report(runtime, &report);
+    Ok(())
 }
 
 fn run_preview(runtime: &str) -> Result<()> {

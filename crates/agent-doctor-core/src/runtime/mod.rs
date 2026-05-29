@@ -1,4 +1,7 @@
+mod bash_allowlist;
 mod registry;
+
+pub use bash_allowlist::{bash_command_allowed_for_runtime, runtime_allowed_bash_commands};
 
 pub(crate) use registry::ConfigFormat;
 

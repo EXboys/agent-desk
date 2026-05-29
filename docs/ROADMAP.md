@@ -3,11 +3,15 @@
 ## P0 — CLI MVP
 
 - [x] `agent-doctor doctor` — detect OpenClaw, Hermes, Claude Code, Codex; print config paths and gateway wiring
+- [x] `agent-doctor doctor --explain` — AI diagnosis for runtimes with probe issues
+- [x] `agent-doctor install <runtime>` — rule-based Hermes/OpenClaw install with install logs
+- [x] `agent-doctor install <runtime> --explain` — install + AI failure/success explanation
 - [x] Hermes model presets — `profile init/list/use`, `config show hermes`
 - [x] Repair safety foundation — diagnostic sensitivity classes, redaction, typed actions, backup/audit report types
 - [x] Runtime-specific read-only probes — binary, version, PATH conflicts, config parse/schema, env conflicts, gateway connectivity, MCP/Skills path references
 - [x] Hermes deep probes — model schema, provider API key env, `.env` parse, duplicate/empty key checks, and `.env` file permissions
 - [x] `agent-doctor repair <runtime>` — read-only probe + safe repair preview
+- [x] `agent-doctor repair <runtime> --explain` — AI diagnosis from probe (no writes)
 - [x] `agent-doctor repair <runtime> --apply` — backup → Hermes rule playbook → re-probe → audit (Hermes only for auto-fix today)
 - [x] `agent-doctor repair <runtime> --rollback [--backup <id>]` — restore configs from `~/.config/agent-doctor/backups/`
 - [ ] `agent-doctor setup` — write `~/.config/agent-doctor/profile.env` + merge runtime configs
@@ -30,7 +34,7 @@
 | Rollback from backup directory | Shipped (CLI + desktop) |
 | AI-generated repair plans / free-form shell | Not planned for v1 |
 | Auto-fill or upload API keys | Not planned |
-| `install` / `update` runtime binaries | Hermes + OpenClaw: shipped via official installers (`repair <runtime> --apply`); Claude/Codex planned |
+| `install` / `update` runtime binaries | Hermes + OpenClaw: `install` command + repair playbook; Claude/Codex planned |
 | OpenClaw / Claude / Codex rule playbooks | Planned |
 
 ## P1 — Desktop tray

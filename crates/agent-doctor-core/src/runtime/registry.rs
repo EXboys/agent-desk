@@ -11,7 +11,7 @@ use crate::probe::runtimes::{
     probe_deep, schema_claude_code, schema_codex, schema_hermes, schema_openclaw,
 };
 use crate::probe::ParsedConfig;
-use crate::probe::{ProbeCheck, RuntimeProbeReport};
+use crate::probe::{ProbeCheck, ProbeStatus, RuntimeProbeReport};
 use crate::repair::{
     apply_hermes_playbook, apply_hermes_playbook_filtered, apply_openclaw_playbook,
     apply_openclaw_playbook_filtered, suggest_hermes_repairs, suggest_openclaw_repairs,
@@ -207,10 +207,42 @@ pub fn suggest_runtime_repairs(
     runtime_id: &str,
     probe: &RuntimeProbeReport,
 ) -> Vec<SuggestedRepair> {
-    descriptor_by_id(runtime_id)
+    let mut items = descriptor_by_id(runtime_id)
         .and_then(|entry| entry.suggest_repairs)
         .map(|suggest| suggest(probe))
-        .unwrap_or_default()
+        .unwrap_or_default();
+
+    if probe_needs_binary_install(probe) && !items.iter().any(|item| item.id.ends_with("-install"))
+    {
+        let title = adapter_by_id(runtime_id)
+            .map(|adapter| adapter.display_name().to_string())
+            .unwrap_or_else(|| runtime_id.to_string());
+        let has_rules = runtime_supports_lifecycle(runtime_id);
+        items.insert(
+            0,
+            SuggestedRepair {
+                id: format!("fix-{runtime_id}-install"),
+                title: format!("Install {title}"),
+                description: if has_rules {
+                    "Install via official rule-based script; AI repair may retry on failure."
+                        .to_string()
+                } else {
+                    "No rule installer registered; AI repair uses allowlisted install commands."
+                        .to_string()
+                },
+                auto_fixable: true,
+            },
+        );
+    }
+
+    items
+}
+
+fn probe_needs_binary_install(probe: &RuntimeProbeReport) -> bool {
+    probe
+        .checks
+        .iter()
+        .any(|check| check.id == "binary.exists" && check.status == ProbeStatus::Fail)
 }
 
 pub fn apply_runtime_playbook(
@@ -258,6 +290,7 @@ pub fn runtime_supports_lifecycle(runtime_id: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::probe::{ProbeCheck, ProbeSeverity};
 
     #[test]
     fn registry_has_unique_ids_in_stable_order() {
@@ -293,6 +326,28 @@ mod tests {
         assert!(hermes.apply_playbook.is_some());
         assert!(hermes.run_lifecycle.is_some());
         assert!(hermes.deep_probe.is_some());
+    }
+
+    #[test]
+    fn suggests_generic_install_when_binary_missing() {
+        let probe = RuntimeProbeReport {
+            runtime_id: "claude-code".to_string(),
+            display_name: "Claude Code".to_string(),
+            binary_name: "claude".to_string(),
+            checks: vec![ProbeCheck::new(
+                "binary.exists",
+                "Binary on PATH",
+                ProbeStatus::Fail,
+                ProbeSeverity::Error,
+                "missing",
+                crate::repair::SensitivityLevel::Public,
+            )],
+            facts: Vec::new(),
+        };
+        let items = suggest_runtime_repairs("claude-code", &probe);
+        assert!(items
+            .iter()
+            .any(|item| item.id == "fix-claude-code-install"));
     }
 
     #[test]

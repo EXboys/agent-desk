@@ -1,0 +1,195 @@
+use anyhow::{bail, Context, Result};
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Value};
+
+use super::LlmConfig;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainReport {
+    pub summary: String,
+    pub likely_causes: Vec<String>,
+    pub recommended_action_ids: Vec<String>,
+    pub user_next_steps: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainInput {
+    pub runtime_id: String,
+    pub probe_summary: String,
+    pub issue_score: u32,
+    pub checks: Vec<ExplainCheck>,
+    pub suggested_repairs: Vec<ExplainSuggestion>,
+    pub install_failure: Option<ExplainInstallFailure>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainCheck {
+    pub title: String,
+    pub status: String,
+    pub message: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainSuggestion {
+    pub id: String,
+    pub title: String,
+    pub auto_fixable: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExplainInstallFailure {
+    pub action_id: String,
+    pub reason: String,
+    pub log_path: Option<String>,
+    pub log_tail: String,
+}
+
+pub fn explain_runtime(input: &ExplainInput) -> Result<ExplainReport> {
+    let Some(config) = LlmConfig::from_env() else {
+        return Ok(fallback_explain(input));
+    };
+
+    match explain_with_llm(&config, input) {
+        Ok(report) => Ok(report),
+        Err(_) => Ok(fallback_explain(input)),
+    }
+}
+
+fn explain_with_llm(config: &LlmConfig, input: &ExplainInput) -> Result<ExplainReport> {
+    let client = reqwest::blocking::Client::new();
+    let body = json!({
+        "model": config.model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are Agent Doctor diagnostic assistant. Explain runtime health in plain language. \
+                    Reply with JSON only: {\"summary\":\"...\",\"likely_causes\":[\"...\"],\"recommended_action_ids\":[\"...\"],\"user_next_steps\":[\"...\"]}. \
+                    recommended_action_ids must be chosen only from suggested_repairs ids. \
+                    Do not invent secrets or shell commands outside user_next_steps. \
+                    If install failed, explain why and give safe manual next steps."
+            },
+            {
+                "role": "user",
+                "content": serde_json::to_string(input)?
+            }
+        ],
+        "temperature": 0.2,
+    });
+
+    let response = client
+        .post(&config.api_url)
+        .bearer_auth(&config.api_key)
+        .json(&body)
+        .send()
+        .context("explain LLM request failed")?;
+
+    let status = response.status();
+    let payload: Value = response
+        .json()
+        .context("failed to parse explain response")?;
+    if !status.is_success() {
+        bail!("explain LLM HTTP {status}: {payload}");
+    }
+
+    let content = payload
+        .pointer("/choices/0/message/content")
+        .and_then(|value| value.as_str())
+        .context("explain response missing content")?;
+
+    parse_explain_json(content).context("failed to parse explain JSON from model")
+}
+
+fn parse_explain_json(content: &str) -> Result<ExplainReport> {
+    let trimmed = content.trim();
+    let json_text = if let Some(start) = trimmed.find('{') {
+        if let Some(end) = trimmed.rfind('}') {
+            &trimmed[start..=end]
+        } else {
+            trimmed
+        }
+    } else {
+        trimmed
+    };
+
+    serde_json::from_str(json_text).context("invalid explain JSON")
+}
+
+fn fallback_explain(input: &ExplainInput) -> ExplainReport {
+    let mut likely_causes = Vec::new();
+    let mut next_steps = Vec::new();
+
+    for check in &input.checks {
+        if check.status == "fail" || check.status == "warn" {
+            likely_causes.push(format!("{}: {}", check.title, check.message));
+        }
+    }
+
+    if let Some(failure) = &input.install_failure {
+        likely_causes.push(format!("Install failed: {}", failure.reason));
+        next_steps.push(format!(
+            "Inspect install log: {}",
+            failure.log_path.as_deref().unwrap_or("(not saved)")
+        ));
+        next_steps.push(format!("Retry: agent-doctor install {}", input.runtime_id));
+    }
+
+    if next_steps.is_empty() {
+        for suggestion in &input.suggested_repairs {
+            if suggestion.auto_fixable {
+                next_steps.push(format!(
+                    "Run: agent-doctor repair {} --apply",
+                    input.runtime_id
+                ));
+                break;
+            }
+        }
+    }
+
+    if next_steps.is_empty() && input.issue_score == 0 {
+        next_steps.push("No action required.".to_string());
+    }
+
+    ExplainReport {
+        summary: format!(
+            "{} health score {} — {}",
+            input.runtime_id, input.issue_score, input.probe_summary
+        ),
+        likely_causes,
+        recommended_action_ids: input
+            .suggested_repairs
+            .iter()
+            .filter(|item| item.auto_fixable)
+            .map(|item| item.id.clone())
+            .collect(),
+        user_next_steps: next_steps,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn fallback_explain_lists_failed_checks() {
+        let report = fallback_explain(&ExplainInput {
+            runtime_id: "openclaw".to_string(),
+            probe_summary: "fail=1".to_string(),
+            issue_score: 100,
+            checks: vec![ExplainCheck {
+                title: "Binary on PATH".to_string(),
+                status: "fail".to_string(),
+                message: "openclaw not found".to_string(),
+            }],
+            suggested_repairs: vec![ExplainSuggestion {
+                id: "fix-openclaw-install".to_string(),
+                title: "Install OpenClaw".to_string(),
+                auto_fixable: true,
+            }],
+            install_failure: None,
+        });
+        assert!(report.summary.contains("openclaw"));
+        assert!(report
+            .recommended_action_ids
+            .contains(&"fix-openclaw-install".to_string()));
+    }
+}

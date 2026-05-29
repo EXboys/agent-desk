@@ -47,6 +47,7 @@ pub struct RepairToolResult {
 }
 
 pub struct RepairToolExecutor {
+    runtime_id: String,
     allowed_paths: Vec<PathBuf>,
     vault: SecretVault,
     apply_writes: bool,
@@ -55,6 +56,7 @@ pub struct RepairToolExecutor {
 impl RepairToolExecutor {
     pub fn new(runtime_id: &str, vault: SecretVault, apply_writes: bool) -> Self {
         Self {
+            runtime_id: runtime_id.to_string(),
             allowed_paths: allowed_paths_for_runtime(runtime_id),
             vault,
             apply_writes,
@@ -62,12 +64,13 @@ impl RepairToolExecutor {
     }
 
     pub fn with_allowed_paths(
-        _runtime_id: &str,
+        runtime_id: &str,
         vault: SecretVault,
         apply_writes: bool,
         allowed_paths: Vec<PathBuf>,
     ) -> Self {
         Self {
+            runtime_id: runtime_id.to_string(),
             allowed_paths,
             vault,
             apply_writes,
@@ -371,7 +374,7 @@ impl RepairToolExecutor {
         };
 
         let command = self.vault.restore_tokens_in_text(command);
-        if !bash_command_allowed(&command) {
+        if !bash_command_allowed(&self.runtime_id, &command) {
             return Ok(failed(
                 RepairToolKind::Bash,
                 false,
