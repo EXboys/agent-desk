@@ -3,9 +3,9 @@
 //! Uses NousResearch install scripts instead of `pip install` to avoid Python 3.11+
 //! and pyenv shim issues on macOS.
 
-use std::process::Output;
+use anyhow::{Context, Result};
 
-use anyhow::{bail, Context, Result};
+use super::runner::run_shell_command;
 
 pub const HERMES_INSTALL_SCRIPT_URL: &str =
     "https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh";
@@ -77,49 +77,6 @@ pub fn run_hermes_lifecycle(action: HermesLifecycleAction) -> Result<()> {
             }
         )
     })
-}
-
-fn run_shell_command(command_line: &str) -> Result<()> {
-    use std::process::Command;
-
-    #[cfg(unix)]
-    let output = Command::new("bash")
-        .arg("-c")
-        .arg(command_line)
-        .output()
-        .context("failed to start install shell")?;
-
-    #[cfg(windows)]
-    let output = Command::new("cmd")
-        .args(["/C", command_line])
-        .output()
-        .context("failed to start install shell")?;
-
-    finish_lifecycle_output(&output)
-}
-
-fn finish_lifecycle_output(output: &Output) -> Result<()> {
-    if output.status.success() {
-        return Ok(());
-    }
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let raw = if stderr.trim().is_empty() {
-        stdout.trim()
-    } else {
-        stderr.trim()
-    };
-    let detail = last_lines(raw, 8);
-    if detail.is_empty() {
-        bail!("installer exited with status {:?}", output.status.code());
-    }
-    bail!("{detail}");
-}
-
-fn last_lines(text: &str, n: usize) -> String {
-    let lines: Vec<&str> = text.lines().collect();
-    let start = lines.len().saturating_sub(n);
-    lines[start..].join("\n")
 }
 
 #[cfg(test)]

@@ -141,7 +141,7 @@ pub fn repair_tool_definitions() -> Value {
             "type": "function",
             "function": {
                 "name": "bash",
-                "description": "Run an allowlisted repair shell command (hermes install/update, chmod .env, hermes --version).",
+                "description": "Run an allowlisted repair shell command (Hermes/OpenClaw install/update, chmod .env, version checks).",
                 "parameters": {
                     "type": "object",
                     "properties": {

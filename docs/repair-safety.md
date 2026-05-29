@@ -68,6 +68,7 @@ Runtime-specific rule playbooks extend step 4. **Hermes v1 (shipped):**
 - fill missing/empty `model.*` fields from the active Agent Doctor profile preset
 - when the provider API key is missing: append a `VAR=` placeholder to `~/.hermes/.env` (or create the file) and write a local guide under `~/.config/agent-doctor/guides/hermes-api-key-<VAR>.md`
 - when `hermes` is not on PATH: run the official Hermes installer script (same approach as [CC Switch](https://github.com/farion1231/cc-switch); requires network and user confirmation via `--apply`)
+- when `openclaw` is not on PATH: run the official OpenClaw installer (`openclaw.ai/install.sh` with `--no-onboard --no-prompt`; requires network and `--apply`)
 
 **Never shipped / not planned for v1:** auto-filling or uploading API keys; AI choosing arbitrary shell commands.
 
@@ -130,4 +131,4 @@ Configure the planner LLM via environment:
 
 Without an API key, `--plan ai` falls back to the deterministic planner.
 
-Bash is **not** a free shell: only Hermes install/update, `hermes --version`, and `chmod` on `.env` paths are allowed. Edits are limited to runtime config paths from the adapter registry.
+Bash is **not** a free shell: only Hermes/OpenClaw install/update, `hermes|openclaw --version`, and `chmod` on `.env` paths are allowed. Edits are limited to runtime config paths from the adapter registry.
