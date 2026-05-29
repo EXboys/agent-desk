@@ -315,7 +315,7 @@ fn probe_configs(
                         "config parsed successfully",
                         SensitivityLevel::ConfigShape,
                     ));
-                    probe_schema(&ctx.runtime_id, &path, &parsed, checks, facts);
+                    probe_schema(ctx.runtime_id, &path, &parsed, checks, facts);
                     probe_path_references(&path, &parsed, checks, facts);
                 }
                 Err(error) => checks.push(ProbeCheck::new(
