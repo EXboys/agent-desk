@@ -11,6 +11,8 @@ use crate::presets::{load_profiles, HermesProfilePreset};
 use crate::probe::{ProbeStatus, RuntimeProbeReport};
 use crate::repair::{SkippedRepairAction, SuggestedRepair};
 
+use super::should_run;
+
 #[derive(Debug, Default)]
 pub struct PlaybookApplyResult {
     pub executed: Vec<String>,
@@ -176,12 +178,6 @@ pub fn apply_hermes_playbook_filtered(
     }
 
     Ok(result)
-}
-
-fn should_run(action_id: &str, only_ids: Option<&[String]>) -> bool {
-    only_ids
-        .map(|ids| ids.iter().any(|id| id == action_id))
-        .unwrap_or(true)
 }
 
 fn hermes_needs_install(probe: &RuntimeProbeReport) -> bool {

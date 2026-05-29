@@ -26,10 +26,11 @@
 | Fill empty `model.*` from active profile | Shipped |
 | Missing API key → `.env` placeholder + local guide (no secret fill) | Shipped |
 | Install Hermes via official `install.sh` / `install.ps1` when binary missing | Shipped |
+| Install OpenClaw via official `openclaw.ai/install.sh` when binary missing | Shipped |
 | Rollback from backup directory | Shipped (CLI + desktop) |
 | AI-generated repair plans / free-form shell | Not planned for v1 |
 | Auto-fill or upload API keys | Not planned |
-| `install` / `update` runtime binaries | Hermes: shipped via official installer (`repair hermes --apply`); other runtimes planned |
+| `install` / `update` runtime binaries | Hermes + OpenClaw: shipped via official installers (`repair <runtime> --apply`); Claude/Codex planned |
 | OpenClaw / Claude / Codex rule playbooks | Planned |
 
 ## P1 — Desktop tray
@@ -42,7 +43,8 @@
 ## P2 — Adapters & policy
 
 - [ ] Local policy evaluate before ingest
-- [ ] OpenClaw repair playbook: install health, config schema, env, MCP/skills symlink checks
+- [x] OpenClaw install via repair loop / playbook when `openclaw` binary missing
+- [ ] OpenClaw repair playbook: config schema, env, MCP/skills symlink checks (beyond install)
 - [ ] Team baseline drift detection for gateway, model provider, MCP, and Skill settings
 - [ ] SkillLite adapter (optional runtime)
 

@@ -1,6 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::lifecycle::hermes::{hermes_install_shell_command, hermes_update_shell_command};
+use crate::lifecycle::openclaw::{openclaw_install_shell_command, openclaw_update_shell_command};
 use crate::runtime::adapter_by_id;
 
 /// Paths the repair agent may read or edit for a runtime.
@@ -38,12 +39,26 @@ pub fn bash_command_allowed(command: &str) -> bool {
 
     let hermes_install = hermes_install_shell_command();
     let hermes_update = hermes_update_shell_command();
-    if trimmed == hermes_install || trimmed == hermes_update {
+    let openclaw_install = openclaw_install_shell_command();
+    let openclaw_update = openclaw_update_shell_command();
+    if trimmed == hermes_install
+        || trimmed == hermes_update
+        || trimmed == openclaw_install
+        || trimmed == openclaw_update
+    {
         return true;
     }
 
     if trimmed.starts_with("hermes ") {
         let sub = trimmed.trim_start_matches("hermes ").trim();
+        return sub.starts_with("update")
+            || sub.starts_with("--version")
+            || sub.starts_with("-V")
+            || sub.starts_with("version");
+    }
+
+    if trimmed.starts_with("openclaw ") {
+        let sub = trimmed.trim_start_matches("openclaw ").trim();
         return sub.starts_with("update")
             || sub.starts_with("--version")
             || sub.starts_with("-V")
@@ -65,6 +80,12 @@ mod tests {
     fn allows_hermes_lifecycle_commands() {
         assert!(bash_command_allowed(&hermes_install_shell_command()));
         assert!(bash_command_allowed("hermes --version"));
+    }
+
+    #[test]
+    fn allows_openclaw_lifecycle_commands() {
+        assert!(bash_command_allowed(&openclaw_install_shell_command()));
+        assert!(bash_command_allowed("openclaw --version"));
     }
 
     #[test]

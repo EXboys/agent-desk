@@ -4,14 +4,17 @@ use anyhow::{Context, Result};
 
 use crate::adapter::RuntimeAdapter;
 use crate::adapters::{ClaudeCodeAdapter, CodexAdapter, HermesAdapter, OpenClawAdapter};
-use crate::lifecycle::{run_hermes_lifecycle, HermesLifecycleAction};
+use crate::lifecycle::{
+    run_hermes_lifecycle, run_openclaw_lifecycle, HermesLifecycleAction, OpenClawLifecycleAction,
+};
 use crate::probe::runtimes::{
     probe_deep, schema_claude_code, schema_codex, schema_hermes, schema_openclaw,
 };
 use crate::probe::ParsedConfig;
 use crate::probe::{ProbeCheck, RuntimeProbeReport};
 use crate::repair::{
-    apply_hermes_playbook, apply_hermes_playbook_filtered, suggest_hermes_repairs,
+    apply_hermes_playbook, apply_hermes_playbook_filtered, apply_openclaw_playbook,
+    apply_openclaw_playbook_filtered, suggest_hermes_repairs, suggest_openclaw_repairs,
     PlaybookApplyResult, SuggestedRepair,
 };
 
@@ -106,6 +109,14 @@ fn hermes_adapter() -> Box<dyn RuntimeAdapter> {
     Box::new(HermesAdapter)
 }
 
+fn run_openclaw_lifecycle_action(action: RuntimeLifecycleAction) -> Result<()> {
+    let action = match action {
+        RuntimeLifecycleAction::Install => OpenClawLifecycleAction::Install,
+        RuntimeLifecycleAction::Update => OpenClawLifecycleAction::Update,
+    };
+    run_openclaw_lifecycle(action)
+}
+
 fn run_hermes_lifecycle_action(action: RuntimeLifecycleAction) -> Result<()> {
     let action = match action {
         RuntimeLifecycleAction::Install => HermesLifecycleAction::Install,
@@ -125,9 +136,9 @@ static RUNTIME_REGISTRY: &[RuntimeDescriptor] = &[
         create_adapter: openclaw_adapter,
         schema_probe: Some(schema_openclaw),
         deep_probe: None,
-        suggest_repairs: None,
-        apply_playbook: None,
-        run_lifecycle: None,
+        suggest_repairs: Some(suggest_openclaw_repairs),
+        apply_playbook: Some(apply_openclaw_playbook),
+        run_lifecycle: Some(run_openclaw_lifecycle_action),
     },
     RuntimeDescriptor {
         id: "hermes",
@@ -214,6 +225,9 @@ pub fn apply_runtime_playbook_filtered(
     probe: &RuntimeProbeReport,
     only_ids: Option<&[String]>,
 ) -> Result<PlaybookApplyResult> {
+    if runtime_id == "openclaw" {
+        return apply_openclaw_playbook_filtered(probe, only_ids);
+    }
     if runtime_id == "hermes" {
         return apply_hermes_playbook_filtered(probe, only_ids);
     }
@@ -260,6 +274,15 @@ mod tests {
             assert_eq!(adapter.id(), entry.id);
             assert_eq!(adapter.discover().installed, adapter.discover().installed);
         }
+    }
+
+    #[test]
+    fn openclaw_entry_wires_playbook_and_lifecycle() {
+        let openclaw = descriptor_by_id("openclaw").expect("openclaw");
+        assert!(openclaw.schema_probe.is_some());
+        assert!(openclaw.suggest_repairs.is_some());
+        assert!(openclaw.apply_playbook.is_some());
+        assert!(openclaw.run_lifecycle.is_some());
     }
 
     #[test]

@@ -14,7 +14,10 @@ pub use adapter::{
 };
 pub use adapters::{CodexAdapter, HermesAdapter, HermesSettings, OpenClawAdapter};
 pub use doctor::{run_doctor, DoctorReport, RuntimeDoctorResult};
-pub use lifecycle::{hermes_shell_command, run_hermes_lifecycle, HermesLifecycleAction};
+pub use lifecycle::{
+    hermes_shell_command, openclaw_shell_command, run_hermes_lifecycle, run_openclaw_lifecycle,
+    HermesLifecycleAction, OpenClawLifecycleAction,
+};
 pub use presets::{
     apply_profile_model, default_local_hermes_preset, default_work_models, effective_models,
     init_example_profiles, load_profiles, merge_builtin_profiles, profiles_path, set_runtime_model,
