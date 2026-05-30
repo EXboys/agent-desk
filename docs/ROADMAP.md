@@ -44,7 +44,20 @@
 - [x] Hermes: apply fixes, rollback, open API key guide
 - [ ] Keychain storage for API keys (optional)
 
-## P2 — Adapters & policy
+## P2 — Project workspaces
+
+- [x] `agent-doctor workspace init` — register project; bind Hermes profile, Claude project dir, Codex CODEX_HOME, OpenClaw agent workspace
+- [x] `agent-doctor workspace use` — activate workspace + write `active-workspace.env`
+- [x] `agent-doctor workspace status` / `workspace doctor` — alignment and memory bleed checks
+- [x] `agent-doctor workspace enter` / `env` / `match` — shell eval exports
+- [x] `agent-doctor workspace hook install` — zsh/bash cd auto-align
+- [x] `workspace use` backups before switching (Hermes/OpenClaw/project Claude settings)
+- [x] MCP/skills snapshot per workspace (`workspaces/<name>/snapshots/`)
+- [x] `workspace fix` — auto-rebind Hermes/OpenClaw, refresh env, restore project `.mcp.json`
+- [x] Claude `~/.claude.json` user-scoped MCP detection in workspace doctor
+- [x] Shell `cd` hook / direnv integration (fish + `workspace direnv`)
+- [x] Desktop tray workspace switch + tooltip
+- [x] `workspace use --restart-gateways` — Hermes/OpenClaw gateway restart
 
 - [ ] Local policy evaluate before ingest
 - [x] OpenClaw install via repair loop / playbook when `openclaw` binary missing

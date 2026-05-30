@@ -103,6 +103,11 @@ enum Commands {
         #[command(subcommand)]
         action: PolicyAction,
     },
+    /// Per-project workspace isolation (Hermes, Claude Code, Codex, OpenClaw)
+    Workspace {
+        #[command(subcommand)]
+        action: WorkspaceAction,
+    },
 }
 
 #[derive(Subcommand)]
@@ -138,6 +143,107 @@ enum ConfigAction {
         model: Option<String>,
         #[arg(long)]
         base_url: Option<String>,
+    },
+}
+
+#[derive(Subcommand)]
+enum WorkspaceAction {
+    /// Register a project directory as an isolated workspace
+    Init {
+        /// Project path (default: current directory)
+        path: Option<std::path::PathBuf>,
+        /// Workspace name (default: directory name)
+        #[arg(long)]
+        name: Option<String>,
+        /// Resolve git repository root instead of the given directory
+        #[arg(long)]
+        git_root: bool,
+    },
+    /// List registered workspaces
+    List {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Activate a workspace and write active-workspace.env
+    Use {
+        name: String,
+        /// Skip config backup before switching
+        #[arg(long)]
+        no_backup: bool,
+        /// Restart Hermes/OpenClaw gateways after switching
+        #[arg(long)]
+        restart_gateways: bool,
+    },
+    /// Match cwd to a registered workspace (prints name)
+    Match {
+        path: Option<std::path::PathBuf>,
+        #[arg(long)]
+        git_root: bool,
+    },
+    /// Print shell exports for a workspace (eval "$(agent-doctor workspace env --shell zsh)")
+    Env {
+        #[arg(long, default_value = "zsh")]
+        shell: String,
+        #[arg(long)]
+        name: Option<String>,
+    },
+    /// Activate workspace for path, backup, and print eval snippet
+    Enter {
+        path: Option<std::path::PathBuf>,
+        #[arg(long)]
+        git_root: bool,
+    },
+    /// Print or write a direnv .envrc for a workspace
+    Direnv {
+        #[arg(long)]
+        name: Option<String>,
+        /// Write .envrc into the project directory
+        #[arg(long)]
+        write: bool,
+    },
+    /// Install shell cd hooks for auto workspace env alignment
+    Hook {
+        #[command(subcommand)]
+        action: WorkspaceHookAction,
+    },
+    /// Show active workspace and runtime alignment
+    Status {
+        path: Option<std::path::PathBuf>,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Detect memory/config bleed risks for the active workspace
+    Doctor {
+        #[arg(long)]
+        json: bool,
+    },
+    /// Auto-fix alignment issues detected by workspace doctor
+    Fix {
+        /// Preview fixes without applying
+        #[arg(long)]
+        dry_run: bool,
+        /// Restart Hermes/OpenClaw gateways when fixing gateway mismatch
+        #[arg(long)]
+        restart_gateways: bool,
+        #[arg(long)]
+        json: bool,
+    },
+    /// Remove a registered workspace
+    Remove {
+        name: String,
+        /// Delete ~/.config/agent-doctor/workspaces/<name>/ data
+        #[arg(long)]
+        purge: bool,
+    },
+}
+
+#[derive(Subcommand)]
+enum WorkspaceHookAction {
+    /// Install shell cd hooks (zsh and/or bash)
+    Install {
+        /// Shell hook to install: zsh, bash, fish, or all
+        #[arg(long, default_value = "all")]
+        shell: String,
     },
 }
 
@@ -203,6 +309,44 @@ fn main() -> Result<()> {
         Commands::Sync => commands::sync::run()?,
         Commands::Policy { action } => match action {
             PolicyAction::Pull => commands::policy::pull()?,
+        },
+        Commands::Workspace { action } => match action {
+            WorkspaceAction::Init {
+                path,
+                name,
+                git_root,
+            } => commands::workspace::init(path, name, git_root)?,
+            WorkspaceAction::List { json } => commands::workspace::list(json)?,
+            WorkspaceAction::Use {
+                name,
+                no_backup,
+                restart_gateways,
+            } => commands::workspace::activate(&name, !no_backup, restart_gateways)?,
+            WorkspaceAction::Match { path, git_root } => {
+                commands::workspace::r#match(path, git_root)?
+            }
+            WorkspaceAction::Env { shell, name } => {
+                commands::workspace::env(&shell, name.as_deref())?
+            }
+            WorkspaceAction::Enter { path, git_root } => {
+                commands::workspace::enter(path, git_root)?
+            }
+            WorkspaceAction::Direnv { name, write } => {
+                commands::workspace::direnv(name.as_deref(), write)?
+            }
+            WorkspaceAction::Hook { action } => match action {
+                WorkspaceHookAction::Install { shell } => {
+                    commands::workspace::hook_install(&shell)?
+                }
+            },
+            WorkspaceAction::Status { path, json } => commands::workspace::status(path, json)?,
+            WorkspaceAction::Doctor { json } => commands::workspace::doctor(json)?,
+            WorkspaceAction::Fix {
+                dry_run,
+                restart_gateways,
+                json,
+            } => commands::workspace::fix(dry_run, restart_gateways, json)?,
+            WorkspaceAction::Remove { name, purge } => commands::workspace::remove(&name, purge)?,
         },
     }
     Ok(())

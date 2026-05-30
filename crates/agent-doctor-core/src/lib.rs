@@ -9,6 +9,7 @@ pub mod profile;
 pub mod repair;
 pub mod runtime;
 pub mod setup;
+pub mod workspace;
 
 pub use adapter::{
     AdapterDiscovery, ApplyReport, RuntimeAdapter, RuntimeModelPreset, RuntimeModelState,
@@ -54,3 +55,14 @@ pub use runtime::{
     suggest_runtime_repairs, RuntimeDescriptor, RuntimeLifecycleAction, RuntimeProbeSpec,
 };
 pub use setup::{execute_setup, RuntimeSetupResult, SetupOptions, SetupReport};
+pub use workspace::{
+    active_env_path, bash_hook_file_path, enter_workspace, fish_hook_file_path, hook_file_path,
+    init_workspace, install_bash_hook, install_fish_hook, install_zsh_hook, load_workspaces,
+    match_workspace_for_path, remove_workspace, render_direnv_envrc, render_shell_env,
+    render_shell_env_for_name, save_workspaces, use_workspace, use_workspace_with_options,
+    workspace_doctor, workspace_fix, workspace_status, workspaces_path, write_direnv_envrc,
+    EnterWorkspaceReport, GatewayRestartReport, InitWorkspaceReport, UseWorkspaceOptions,
+    UseWorkspaceReport, WorkspaceCheck, WorkspaceCheckStatus, WorkspaceDoctorReport,
+    WorkspaceEntry, WorkspaceFixAction, WorkspaceFixReport, WorkspaceStatusReport,
+    WorkspacesDocument,
+};
