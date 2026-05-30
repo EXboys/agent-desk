@@ -70,6 +70,17 @@ Runtime-specific rule playbooks extend step 4. **Hermes v1 (shipped):**
 - when `hermes` is not on PATH: run the official Hermes installer script (same approach as [CC Switch](https://github.com/farion1231/cc-switch); requires network and user confirmation via `--apply`)
 - when `openclaw` is not on PATH: run the official OpenClaw installer (`openclaw.ai/install.sh` with `--no-onboard --no-prompt`; requires network and `--apply`)
 
+**OpenClaw v1 (shipped):**
+
+- install binary when missing
+- create `openclaw.json` when config missing (uses company gateway from profile.env when set)
+- apply `gateway.url` from `profile.env` when gateway not configured
+- migrate legacy `agents.defaults.timeout` → `timeoutSeconds`
+- fix `env.vars` / `env.shellEnv` stored as JSON strings → objects
+- reset invalid `tools.profile` to `coding`
+- tighten `~/.openclaw/.env` permissions to `600`
+- dedupe API key lines in `.env`; scaffold `env.vars` placeholders + local guide (no secret fill)
+
 **Never shipped / not planned for v1:** auto-filling or uploading API keys; AI choosing arbitrary shell commands.
 
 **Rollback:** backups live under `~/.config/agent-doctor/backups/<runtime>-<timestamp>/`. Restore with:
