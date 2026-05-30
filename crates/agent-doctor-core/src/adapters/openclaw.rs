@@ -20,7 +20,10 @@ impl RuntimeAdapter for OpenClawAdapter {
     }
 
     fn config_paths(&self) -> Vec<PathBuf> {
-        vec![home_join(".openclaw/openclaw.json")]
+        vec![
+            home_join(".openclaw/openclaw.json"),
+            home_join(".openclaw/.env"),
+        ]
     }
 
     fn read_profile(&self) -> anyhow::Result<RuntimeProfile> {

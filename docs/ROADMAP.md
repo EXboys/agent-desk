@@ -35,7 +35,7 @@
 | AI-generated repair plans / free-form shell | Not planned for v1 |
 | Auto-fill or upload API keys | Not planned |
 | `install` / `update` runtime binaries | Hermes + OpenClaw: `install` command + repair playbook; Claude/Codex planned |
-| OpenClaw / Claude / Codex rule playbooks | Planned |
+| OpenClaw / Claude / Codex rule playbooks | OpenClaw: install + config/schema/env/gateway fixes shipped; Claude/Codex planned |
 
 ## P1 — Desktop tray
 
@@ -48,7 +48,8 @@
 
 - [ ] Local policy evaluate before ingest
 - [x] OpenClaw install via repair loop / playbook when `openclaw` binary missing
-- [ ] OpenClaw repair playbook: config schema, env, MCP/skills symlink checks (beyond install)
+- [x] OpenClaw repair playbook: config schema, env permissions, gateway from profile, API key scaffold
+- [ ] OpenClaw MCP/skills symlink checks (path reference auto-fix)
 - [ ] Team baseline drift detection for gateway, model provider, MCP, and Skill settings
 - [ ] SkillLite adapter (optional runtime)
 

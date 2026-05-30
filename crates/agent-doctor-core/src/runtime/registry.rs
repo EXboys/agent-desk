@@ -8,7 +8,8 @@ use crate::lifecycle::{
     run_hermes_lifecycle, run_openclaw_lifecycle, HermesLifecycleAction, OpenClawLifecycleAction,
 };
 use crate::probe::runtimes::{
-    probe_deep, schema_claude_code, schema_codex, schema_hermes, schema_openclaw,
+    openclaw_probe_deep, probe_deep, schema_claude_code, schema_codex, schema_hermes,
+    schema_openclaw,
 };
 use crate::probe::ParsedConfig;
 use crate::probe::{ProbeCheck, ProbeStatus, RuntimeProbeReport};
@@ -135,7 +136,7 @@ static RUNTIME_REGISTRY: &[RuntimeDescriptor] = &[
         },
         create_adapter: openclaw_adapter,
         schema_probe: Some(schema_openclaw),
-        deep_probe: None,
+        deep_probe: Some(openclaw_probe_deep),
         suggest_repairs: Some(suggest_openclaw_repairs),
         apply_playbook: Some(apply_openclaw_playbook),
         run_lifecycle: Some(run_openclaw_lifecycle_action),
@@ -313,6 +314,7 @@ mod tests {
     fn openclaw_entry_wires_playbook_and_lifecycle() {
         let openclaw = descriptor_by_id("openclaw").expect("openclaw");
         assert!(openclaw.schema_probe.is_some());
+        assert!(openclaw.deep_probe.is_some());
         assert!(openclaw.suggest_repairs.is_some());
         assert!(openclaw.apply_playbook.is_some());
         assert!(openclaw.run_lifecycle.is_some());
