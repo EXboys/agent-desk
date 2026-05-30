@@ -49,6 +49,12 @@ const messages = {
     "workspaces.fix": "Fix",
     "workspaces.fixRunning": "Applying workspace fixes…",
     "workspaces.fixSummary": "Applied {count} fix action(s). Re-checking…",
+    "slider.close": "Close panel",
+    "slider.eyebrow": "Details",
+    "slider.eyebrowRuntime": "Runtime diagnosis",
+    "slider.eyebrowWorkspace": "Workspace",
+    "workspaces.panelDiagnosis": "Alignment checks",
+    "workspaces.panelFix": "Fix results",
     "doctor.title": "Doctor",
     "doctor.loading": "Loading…",
     "doctor.run": "Scan",
@@ -160,6 +166,12 @@ const messages = {
     "workspaces.fix": "修复",
     "workspaces.fixRunning": "正在应用 workspace 修复…",
     "workspaces.fixSummary": "已应用 {count} 项修复，正在重新检查…",
+    "slider.close": "关闭面板",
+    "slider.eyebrow": "详情",
+    "slider.eyebrowRuntime": "Runtime 诊断",
+    "slider.eyebrowWorkspace": "Workspace",
+    "workspaces.panelDiagnosis": "对齐检查",
+    "workspaces.panelFix": "修复结果",
     "doctor.title": "诊断",
     "doctor.loading": "加载中…",
     "doctor.run": "扫描",
@@ -275,5 +287,10 @@ export function applyStaticI18n(root: ParentNode = document): void {
       "aria-label",
       locale === "zh" ? "配置预设" : "Profile preset",
     );
+  }
+
+  const sliderClose = document.querySelector<HTMLButtonElement>("#detail-slider-close");
+  if (sliderClose) {
+    sliderClose.setAttribute("aria-label", t("slider.close"));
   }
 }

@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { LogicalSize, getCurrentWindow } from "@tauri-apps/api/window";
 import { listen } from "@tauri-apps/api/event";
 import {
   applyStaticI18n,
@@ -134,8 +135,13 @@ const workspaceStatusEl = document.querySelector<HTMLElement>("#workspace-status
 const workspaceApplyEl = document.querySelector<HTMLButtonElement>("#workspace-apply")!;
 const workspaceDoctorEl = document.querySelector<HTMLButtonElement>("#workspace-doctor")!;
 const workspaceFixEl = document.querySelector<HTMLButtonElement>("#workspace-fix")!;
-const workspaceChecksEl = document.querySelector<HTMLUListElement>("#workspace-checks")!;
 const workspaceHintEl = document.querySelector<HTMLElement>("#workspace-hint")!;
+const appShellEl = document.querySelector<HTMLElement>("#app-shell")!;
+const detailSliderEl = document.querySelector<HTMLElement>("#detail-slider")!;
+const detailSliderTitleEl = document.querySelector<HTMLElement>("#detail-slider-title")!;
+const detailSliderEyebrowEl = document.querySelector<HTMLElement>("#detail-slider-eyebrow")!;
+const detailSliderBodyEl = document.querySelector<HTMLElement>("#detail-slider-body")!;
+const detailSliderCloseEl = document.querySelector<HTMLButtonElement>("#detail-slider-close")!;
 const workspacePickerEl = document.querySelector<HTMLElement>("#workspace-picker")!;
 const workspaceTriggerEl = document.querySelector<HTMLButtonElement>("#workspace-trigger")!;
 const workspaceTriggerLabelEl = document.querySelector<HTMLElement>("#workspace-trigger-label")!;
@@ -265,6 +271,18 @@ type RepairStatusFilter = "all" | RepairPreviewResponse["checks"][number]["statu
 
 const repairPreviewByRuntime = new Map<string, RepairPreviewResponse>();
 const repairFilterByRuntime = new Map<string, RepairStatusFilter>();
+const workspaceFilterByReport = { filter: "all" as RepairStatusFilter };
+
+const APP_MAIN_WIDTH = 432;
+const APP_SLIDER_WIDTH = 380;
+const APP_WINDOW_HEIGHT = 760;
+
+type SliderKind = "runtime-diagnosis" | "workspace-diagnosis" | "workspace-fix";
+
+let sliderKind: SliderKind | null = null;
+let sliderRuntimeId: string | null = null;
+let lastWorkspaceReport: WorkspaceDoctorReport | null = null;
+let sliderOpen = false;
 let selectedPresetName = "";
 let selectedWorkspaceName = "";
 let presetMenuOpen = false;
@@ -688,24 +706,86 @@ function formatVerificationSummary(summary: string): string {
   return `${match[1]} → ${match[2]}`;
 }
 
-function mountRepairPreview(hint: HTMLElement, report: RepairPreviewResponse): void {
+async function resizeAppWindow(width: number): Promise<void> {
+  try {
+    await getCurrentWindow().setSize(new LogicalSize(width, APP_WINDOW_HEIGHT));
+  } catch {
+    // Vite preview / non-Tauri dev
+  }
+}
+
+function setDetailSliderLoading(message: string): void {
+  detailSliderBodyEl.innerHTML = `<p class="detail-loading">${escapeHtml(message)}</p>`;
+}
+
+function setDetailSliderError(message: string): void {
+  detailSliderBodyEl.innerHTML = `<p class="detail-error">${escapeHtml(message)}</p>`;
+}
+
+async function openDetailSlider(
+  eyebrowKey: MessageKey,
+  title: string,
+  kind: SliderKind,
+  runtimeId?: string,
+): Promise<void> {
+  sliderKind = kind;
+  sliderRuntimeId = runtimeId ?? null;
+  detailSliderEyebrowEl.textContent = t(eyebrowKey);
+  detailSliderTitleEl.textContent = title;
+  appShellEl.classList.add("is-slider-open");
+  detailSliderEl.setAttribute("aria-hidden", "false");
+  if (!sliderOpen) {
+    sliderOpen = true;
+    await resizeAppWindow(APP_MAIN_WIDTH + APP_SLIDER_WIDTH);
+  }
+}
+
+async function closeDetailSlider(): Promise<void> {
+  if (!sliderOpen) {
+    return;
+  }
+  appShellEl.classList.remove("is-slider-open");
+  detailSliderEl.setAttribute("aria-hidden", "true");
+  detailSliderBodyEl.innerHTML = "";
+  detailSliderTitleEl.textContent = "—";
+  sliderKind = null;
+  sliderRuntimeId = null;
+  sliderOpen = false;
+  await resizeAppWindow(APP_MAIN_WIDTH);
+}
+
+function refreshDetailSliderIfOpen(): void {
+  if (!sliderOpen || !sliderKind) {
+    return;
+  }
+  if (sliderKind === "runtime-diagnosis" && sliderRuntimeId) {
+    const report = repairPreviewByRuntime.get(sliderRuntimeId);
+    if (report) {
+      mountRepairPreviewToSlider(report);
+    }
+    return;
+  }
+  if (sliderKind === "workspace-diagnosis" && lastWorkspaceReport) {
+    mountWorkspaceDiagnosisToSlider(lastWorkspaceReport);
+  }
+}
+
+function mountRepairPreviewToSlider(report: RepairPreviewResponse): void {
   const runtime = report.runtime_id;
   repairPreviewByRuntime.set(runtime, report);
   const filter = repairFilterByRuntime.get(runtime) ?? "all";
-  hint.innerHTML = renderRepairPreview(report, filter);
+  detailSliderBodyEl.innerHTML = renderRepairPreview(report, filter);
 }
 
 function applyRepairFilter(runtime: string, filter: RepairStatusFilter): void {
   const report = repairPreviewByRuntime.get(runtime);
-  const card = runtimesEl.querySelector<HTMLElement>(`[data-runtime="${runtime}"]`);
-  const hint = card?.querySelector<HTMLElement>("[data-repair-hint]");
-  if (!report || !hint) {
+  if (!report) {
     return;
   }
   const current = repairFilterByRuntime.get(runtime) ?? "all";
   const next = current === filter && filter !== "all" ? "all" : filter;
   repairFilterByRuntime.set(runtime, next);
-  hint.innerHTML = renderRepairPreview(report, next);
+  mountRepairPreviewToSlider(report);
 }
 
 function repairCheckStatusLabel(
@@ -1177,12 +1257,17 @@ async function applyWorkspace() {
 async function doctorWorkspace() {
   workspaceDoctorEl.disabled = true;
   workspaceHintEl.textContent = t("workspaces.doctorRunning");
+  const title = lastWorkspaces?.active ?? t("workspaces.panelDiagnosis");
+  await openDetailSlider("slider.eyebrowWorkspace", title, "workspace-diagnosis");
+  setDetailSliderLoading(t("workspaces.doctorRunning"));
   try {
     const report = await invoke<WorkspaceDoctorReport>("workspace_doctor_command");
-    renderWorkspaceChecks(report);
+    lastWorkspaceReport = report;
+    workspaceFilterByReport.filter = "all";
+    mountWorkspaceDiagnosisToSlider(report);
+    updateWorkspaceSummaryHint(report);
   } catch (error) {
-    workspaceChecksEl.hidden = true;
-    workspaceChecksEl.innerHTML = "";
+    setDetailSliderError(String(error));
     workspaceHintEl.textContent = String(error);
   } finally {
     workspaceDoctorEl.disabled = false;
@@ -1193,19 +1278,154 @@ async function fixWorkspace() {
   workspaceFixEl.disabled = true;
   workspaceDoctorEl.disabled = true;
   workspaceHintEl.textContent = t("workspaces.fixRunning");
+  const title = lastWorkspaces?.active ?? t("workspaces.panelFix");
+  await openDetailSlider("slider.eyebrowWorkspace", title, "workspace-fix");
+  setDetailSliderLoading(t("workspaces.fixRunning"));
   try {
     const report = await invoke<WorkspaceFixReport>("workspace_fix_command", {
       migrateClaudeMcp: false,
     });
+    mountWorkspaceFixToSlider(report);
     const applied = report.actions.filter((action) => action.applied).length;
     workspaceHintEl.textContent = t("workspaces.fixSummary", { count: String(applied) });
-    await doctorWorkspace();
+    const doctorReport = await invoke<WorkspaceDoctorReport>("workspace_doctor_command");
+    lastWorkspaceReport = doctorReport;
+    workspaceFilterByReport.filter = "all";
+    sliderKind = "workspace-diagnosis";
+    detailSliderTitleEl.textContent = doctorReport.active ?? t("workspaces.panelDiagnosis");
+    mountWorkspaceDiagnosisToSlider(doctorReport);
+    updateWorkspaceSummaryHint(doctorReport);
   } catch (error) {
+    setDetailSliderError(String(error));
     workspaceHintEl.textContent = String(error);
   } finally {
     workspaceFixEl.disabled = false;
     workspaceDoctorEl.disabled = false;
   }
+}
+
+function updateWorkspaceSummaryHint(report: WorkspaceDoctorReport): void {
+  if (!report.checks.length) {
+    workspaceHintEl.textContent = t("workspaces.noActive");
+    return;
+  }
+  let pass = 0;
+  let warn = 0;
+  let fail = 0;
+  for (const check of report.checks) {
+    if (check.status === "pass") pass += 1;
+    else if (check.status === "warn") warn += 1;
+    else fail += 1;
+  }
+  workspaceHintEl.textContent = t("workspaces.doctorSummary", {
+    pass: String(pass),
+    warn: String(warn),
+    fail: String(fail),
+  });
+}
+
+function renderWorkspaceSummaryChips(
+  report: WorkspaceDoctorReport,
+  activeFilter: RepairStatusFilter,
+): string {
+  let pass = 0;
+  let warn = 0;
+  let fail = 0;
+  for (const check of report.checks) {
+    if (check.status === "pass") pass += 1;
+    else if (check.status === "warn") warn += 1;
+    else fail += 1;
+  }
+  const chips = [
+    { filter: "all" as const, count: report.checks.length, className: "all", label: t("repair.all") },
+    { filter: "pass" as const, count: pass, className: "pass", label: t("repair.pass") },
+    { filter: "warn" as const, count: warn, className: "warn", label: t("repair.warn") },
+    { filter: "fail" as const, count: fail, className: "fail", label: t("repair.fail") },
+  ];
+  return chips
+    .filter((chip) => chip.filter === "all" || chip.count > 0)
+    .map((chip) =>
+      renderRepairSummaryChip(chip.filter, chip.count, chip.className, chip.label, activeFilter),
+    )
+    .join("");
+}
+
+function renderWorkspaceDiagnosisPanel(
+  report: WorkspaceDoctorReport,
+  activeFilter: RepairStatusFilter = "all",
+): string {
+  const visibleChecks =
+    activeFilter === "all"
+      ? report.checks
+      : report.checks.filter((check) => check.status === activeFilter);
+
+  const checks = visibleChecks
+    .map(
+      (check) => `
+        <li class="repair-check">
+          <span class="repair-check-status ${workspaceStatusClass(check.status)}">${escapeHtml(workspaceStatusLabel(check.status))}</span>
+          <span class="repair-check-body">
+            <strong>${escapeHtml(check.title)}</strong>
+            <span>${escapeHtml(check.detail)}</span>
+          </span>
+        </li>
+      `,
+    )
+    .join("");
+
+  const emptyList =
+    visibleChecks.length === 0
+      ? `<li class="repair-check repair-check-empty">${escapeHtml(t("repair.noMatches"))}</li>`
+      : "";
+
+  return `
+    <div class="repair-panel" data-workspace-panel="diagnosis">
+      <div class="repair-summary" role="tablist" aria-label="${escapeHtml(t("repair.filterLabel"))}">
+        ${renderWorkspaceSummaryChips(report, activeFilter)}
+      </div>
+      <ul class="repair-checks">${checks}${emptyList}</ul>
+      <div class="repair-panel-actions">
+        <button type="button" class="btn-secondary" data-action="workspace-fix">${escapeHtml(t("workspaces.fix"))}</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderWorkspaceFixPanel(report: WorkspaceFixReport): string {
+  const items = report.actions
+    .map(
+      (action) => `
+        <li class="workspace-fix-action ${action.applied ? "is-applied" : ""}">
+          <strong>${action.applied ? "✓" : "·"} ${escapeHtml(action.title)}</strong>
+          <span>${escapeHtml(action.detail)}</span>
+        </li>
+      `,
+    )
+    .join("");
+
+  return `
+    <div class="repair-panel" data-workspace-panel="fix">
+      <ul class="workspace-fix-actions">${items}</ul>
+    </div>
+  `;
+}
+
+function mountWorkspaceDiagnosisToSlider(report: WorkspaceDoctorReport): void {
+  lastWorkspaceReport = report;
+  detailSliderBodyEl.innerHTML = renderWorkspaceDiagnosisPanel(report, workspaceFilterByReport.filter);
+}
+
+function mountWorkspaceFixToSlider(report: WorkspaceFixReport): void {
+  detailSliderBodyEl.innerHTML = renderWorkspaceFixPanel(report);
+}
+
+function applyWorkspaceFilter(filter: RepairStatusFilter): void {
+  if (!lastWorkspaceReport) {
+    return;
+  }
+  const current = workspaceFilterByReport.filter;
+  workspaceFilterByReport.filter = current === filter && filter !== "all" ? "all" : filter;
+  mountWorkspaceDiagnosisToSlider(lastWorkspaceReport);
 }
 
 interface WorkspaceCheck {
@@ -1249,44 +1469,6 @@ function workspaceStatusClass(status: WorkspaceCheck["status"]): string {
     return "warn";
   }
   return "fail";
-}
-
-function renderWorkspaceChecks(report: WorkspaceDoctorReport) {
-  if (!report.checks.length) {
-    workspaceChecksEl.hidden = true;
-    workspaceChecksEl.innerHTML = "";
-    workspaceHintEl.textContent = t("workspaces.noActive");
-    return;
-  }
-
-  workspaceChecksEl.hidden = false;
-  workspaceChecksEl.innerHTML = report.checks
-    .map(
-      (check) => `
-        <li class="repair-check">
-          <span class="repair-check-status ${workspaceStatusClass(check.status)}">${escapeHtml(workspaceStatusLabel(check.status))}</span>
-          <span class="repair-check-body">
-            <strong>${escapeHtml(check.title)}</strong>
-            <span>${escapeHtml(check.detail)}</span>
-          </span>
-        </li>
-      `,
-    )
-    .join("");
-
-  let pass = 0;
-  let warn = 0;
-  let fail = 0;
-  for (const check of report.checks) {
-    if (check.status === "pass") pass += 1;
-    else if (check.status === "warn") warn += 1;
-    else fail += 1;
-  }
-  workspaceHintEl.textContent = t("workspaces.doctorSummary", {
-    pass: String(pass),
-    warn: String(warn),
-    fail: String(fail),
-  });
 }
 
 function setLoading(loading: boolean) {
@@ -1392,20 +1574,8 @@ async function applyPreset() {
   }
 }
 
-async function rollbackRepairRuntimeCard(card: HTMLElement) {
-  const runtime = card.dataset.runtime;
-  const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
-  const diagnoseButton = card.querySelector<HTMLButtonElement>('[data-action="diagnose-runtime"]');
-  const applyButton = card.querySelector<HTMLButtonElement>('[data-action="apply-repair"]');
-  const rollbackButton = card.querySelector<HTMLButtonElement>('[data-action="rollback-repair"]');
-  if (!runtime || !hint) {
-    return;
-  }
-  diagnoseButton?.setAttribute("disabled", "true");
-  applyButton?.setAttribute("disabled", "true");
-  rollbackButton?.setAttribute("disabled", "true");
-  hint.hidden = false;
-  hint.textContent = t("repair.rollingBack");
+async function rollbackRepairRuntimeCard(runtime: string) {
+  setDetailSliderLoading(t("repair.rollingBack"));
   try {
     const restore = await invoke<RestoreSummary>("run_repair_rollback_command", {
       runtime,
@@ -1413,8 +1583,8 @@ async function rollbackRepairRuntimeCard(card: HTMLElement) {
     });
     const report = await invoke<RepairPreviewResponse>("run_repair_preview_command", { runtime });
     repairFilterByRuntime.set(runtime, "all");
-    mountRepairPreview(hint, report);
-    hint.insertAdjacentHTML(
+    mountRepairPreviewToSlider(report);
+    detailSliderBodyEl.insertAdjacentHTML(
       "afterbegin",
       `<p class="repair-rollback-ok">${escapeHtml(
         t("repair.rollbackDone", { id: restore.backup_id, count: String(restore.restored_files.length) }),
@@ -1424,11 +1594,7 @@ async function rollbackRepairRuntimeCard(card: HTMLElement) {
       await loadHermesModel();
     }
   } catch (error) {
-    hint.textContent = String(error);
-  } finally {
-    diagnoseButton?.removeAttribute("disabled");
-    applyButton?.removeAttribute("disabled");
-    rollbackButton?.removeAttribute("disabled");
+    setDetailSliderError(String(error));
   }
 }
 
@@ -1436,49 +1602,39 @@ async function openRepairGuide(path: string) {
   await invoke("open_path_command", { path });
 }
 
-async function applyRepairRuntimeCard(card: HTMLElement) {
-  const runtime = card.dataset.runtime;
-  const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
-  const diagnoseButton = card.querySelector<HTMLButtonElement>('[data-action="diagnose-runtime"]');
-  const applyButton = card.querySelector<HTMLButtonElement>('[data-action="apply-repair"]');
-  if (!runtime || !hint) {
-    return;
-  }
-  diagnoseButton?.setAttribute("disabled", "true");
-  applyButton?.setAttribute("disabled", "true");
-  hint.hidden = false;
-  hint.textContent = t("repair.applying");
+async function applyRepairRuntimeCard(runtime: string) {
+  setDetailSliderLoading(t("repair.applying"));
   try {
     const report = await invoke<RepairPreviewResponse>("run_repair_execute_command", { runtime });
     repairFilterByRuntime.set(runtime, "all");
-    mountRepairPreview(hint, report);
+    mountRepairPreviewToSlider(report);
     if (runtime === "hermes") {
       await loadHermesModel();
     }
   } catch (error) {
-    hint.textContent = String(error);
-  } finally {
-    diagnoseButton?.removeAttribute("disabled");
-    applyButton?.removeAttribute("disabled");
+    setDetailSliderError(String(error));
   }
 }
 
 async function diagnoseRuntimeCard(card: HTMLElement) {
   const runtime = card.dataset.runtime;
-  const hint = card.querySelector<HTMLElement>("[data-repair-hint]");
   const button = card.querySelector<HTMLButtonElement>('[data-action="diagnose-runtime"]');
-  if (!runtime || !hint) {
+  if (!runtime) {
     return;
   }
+  const displayName =
+    card.querySelector(".runtime-tab-title")?.textContent?.trim() ??
+    lastReport?.runtimes.find((item) => item.id === runtime)?.display_name ??
+    runtime;
   button?.setAttribute("disabled", "true");
-  hint.hidden = false;
-  hint.textContent = t("runtime.diagnosing");
+  await openDetailSlider("slider.eyebrowRuntime", displayName, "runtime-diagnosis", runtime);
+  setDetailSliderLoading(t("runtime.diagnosing"));
   try {
     const report = await invoke<RepairPreviewResponse>("run_repair_preview_command", { runtime });
     repairFilterByRuntime.set(runtime, "all");
-    mountRepairPreview(hint, report);
+    mountRepairPreviewToSlider(report);
   } catch (error) {
-    hint.textContent = String(error);
+    setDetailSliderError(String(error));
   } finally {
     button?.removeAttribute("disabled");
   }
@@ -1522,6 +1678,7 @@ async function switchLocale(next: Locale) {
   if (lastWorkspaces) {
     renderWorkspaces(lastWorkspaces);
   }
+  refreshDetailSliderIfOpen();
   if (lastReport) {
     await renderReport(lastReport);
   } else {
@@ -1556,17 +1713,6 @@ runtimesEl.addEventListener("change", (event) => {
 
 runtimesEl.addEventListener("click", (event) => {
   const target = event.target as HTMLElement;
-  const filterBtn = target.closest<HTMLButtonElement>("[data-repair-filter]");
-  if (filterBtn && !filterBtn.disabled) {
-    const card = filterBtn.closest<HTMLElement>("[data-runtime]");
-    const runtime = card?.dataset.runtime;
-    const filter = filterBtn.dataset.repairFilter as RepairStatusFilter | undefined;
-    if (runtime && filter) {
-      applyRepairFilter(runtime, filter);
-    }
-    return;
-  }
-
   const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
   if (!action) {
     return;
@@ -1575,22 +1721,6 @@ runtimesEl.addEventListener("click", (event) => {
   const runtimeCard = target.closest<HTMLElement>("[data-runtime]");
   if (action === "diagnose-runtime" && runtimeCard) {
     void diagnoseRuntimeCard(runtimeCard);
-    return;
-  }
-
-  if (action === "apply-repair" && runtimeCard) {
-    void applyRepairRuntimeCard(runtimeCard);
-    return;
-  }
-
-  if (action === "rollback-repair" && runtimeCard) {
-    void rollbackRepairRuntimeCard(runtimeCard);
-    return;
-  }
-
-  const guideBtn = target.closest<HTMLButtonElement>('[data-action="open-repair-guide"]');
-  if (guideBtn?.dataset.guidePath) {
-    void openRepairGuide(decodeURIComponent(guideBtn.dataset.guidePath));
     return;
   }
 
@@ -1697,6 +1827,51 @@ document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closePresetMenu();
     closeWorkspaceMenu();
+    if (sliderOpen) {
+      void closeDetailSlider();
+    }
+  }
+});
+
+detailSliderCloseEl.addEventListener("click", () => {
+  void closeDetailSlider();
+});
+
+detailSliderBodyEl.addEventListener("click", (event) => {
+  const target = event.target as HTMLElement;
+  const filterBtn = target.closest<HTMLButtonElement>("[data-repair-filter]");
+  if (filterBtn && !filterBtn.disabled) {
+    const filter = filterBtn.dataset.repairFilter as RepairStatusFilter | undefined;
+    if (!filter) {
+      return;
+    }
+    if (sliderKind === "workspace-diagnosis") {
+      applyWorkspaceFilter(filter);
+      return;
+    }
+    if (sliderRuntimeId) {
+      applyRepairFilter(sliderRuntimeId, filter);
+    }
+    return;
+  }
+
+  const action = target.closest<HTMLElement>("[data-action]")?.dataset.action;
+  if (action === "apply-repair" && sliderRuntimeId) {
+    void applyRepairRuntimeCard(sliderRuntimeId);
+    return;
+  }
+  if (action === "rollback-repair" && sliderRuntimeId) {
+    void rollbackRepairRuntimeCard(sliderRuntimeId);
+    return;
+  }
+  if (action === "workspace-fix") {
+    void fixWorkspace();
+    return;
+  }
+
+  const guideBtn = target.closest<HTMLButtonElement>('[data-action="open-repair-guide"]');
+  if (guideBtn?.dataset.guidePath) {
+    void openRepairGuide(decodeURIComponent(guideBtn.dataset.guidePath));
   }
 });
 
@@ -1709,7 +1884,16 @@ void listen("workspace-changed", () => {
 });
 
 void listen<WorkspaceDoctorReport>("workspace-doctor-report", (event) => {
-  renderWorkspaceChecks(event.payload);
+  lastWorkspaceReport = event.payload;
+  workspaceFilterByReport.filter = "all";
+  void openDetailSlider(
+    "slider.eyebrowWorkspace",
+    event.payload.active ?? t("workspaces.panelDiagnosis"),
+    "workspace-diagnosis",
+  ).then(() => {
+    mountWorkspaceDiagnosisToSlider(event.payload);
+    updateWorkspaceSummaryHint(event.payload);
+  });
 });
 
 setLocale(getLocale());

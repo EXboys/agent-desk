@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>
-    <main class="widget">
+    <div class="app-shell" id="app-shell">
+      <main class="widget">
       <header class="widget-toolbar">
         <div class="brand">
           <div class="brand-icon" aria-hidden="true">
@@ -120,7 +121,6 @@
           <button id="workspace-doctor" type="button" class="btn-ghost" data-i18n="workspaces.doctor">Check</button>
           <button id="workspace-fix" type="button" class="btn-ghost" data-i18n="workspaces.fix">Fix</button>
         </div>
-        <ul id="workspace-checks" class="repair-checks" hidden></ul>
         <p id="workspace-hint" class="section-footnote"></p>
       </section>
 
@@ -139,6 +139,33 @@
         <span data-i18n="app.footer">本机 Runtime 发现 · 配置 · 健康检查</span>
       </footer>
     </main>
+
+    <aside
+      class="detail-slider"
+      id="detail-slider"
+      aria-hidden="true"
+      aria-labelledby="detail-slider-title"
+    >
+      <header class="detail-slider-head">
+        <div class="detail-slider-title-wrap">
+          <p class="detail-slider-eyebrow" id="detail-slider-eyebrow" data-i18n="slider.eyebrow">Details</p>
+          <h2 class="detail-slider-title" id="detail-slider-title">—</h2>
+        </div>
+        <button
+          type="button"
+          class="detail-slider-close"
+          id="detail-slider-close"
+          aria-label="Close"
+          data-i18n-aria="slider.close"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </header>
+      <div class="detail-slider-body" id="detail-slider-body"></div>
+    </aside>
+    </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
