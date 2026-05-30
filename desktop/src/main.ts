@@ -48,6 +48,19 @@ interface ProfilesDocument {
   profiles: Record<string, ProfileEntry>;
 }
 
+interface WorkspaceEntry {
+  path: string;
+  hermes_profile: string;
+  codex_home: string;
+  openclaw_agent_id: string;
+  openclaw_workspace: string;
+}
+
+interface WorkspacesDocument {
+  active: string | null;
+  workspaces: Record<string, WorkspaceEntry>;
+}
+
 interface UseProfileReport {
   profile: string;
   applied: Array<{
@@ -117,6 +130,13 @@ const presetPickerEl = document.querySelector<HTMLElement>("#preset-picker")!;
 const presetTriggerEl = document.querySelector<HTMLButtonElement>("#preset-trigger")!;
 const presetTriggerLabelEl = document.querySelector<HTMLElement>("#preset-trigger-label")!;
 const presetMenuEl = document.querySelector<HTMLElement>("#preset-menu")!;
+const workspaceStatusEl = document.querySelector<HTMLElement>("#workspace-status")!;
+const workspaceApplyEl = document.querySelector<HTMLButtonElement>("#workspace-apply")!;
+const workspaceHintEl = document.querySelector<HTMLElement>("#workspace-hint")!;
+const workspacePickerEl = document.querySelector<HTMLElement>("#workspace-picker")!;
+const workspaceTriggerEl = document.querySelector<HTMLButtonElement>("#workspace-trigger")!;
+const workspaceTriggerLabelEl = document.querySelector<HTMLElement>("#workspace-trigger-label")!;
+const workspaceMenuEl = document.querySelector<HTMLElement>("#workspace-menu")!;
 const langSwitchEl = document.querySelector<HTMLElement>(".lang-switch")!;
 const healthPillEl = document.querySelector<HTMLElement>("#health-pill")!;
 const healthLabelEl = document.querySelector<HTMLElement>("#health-label")!;
@@ -233,6 +253,7 @@ function findMatchingPreset(
 
 let lastReport: DoctorReport | null = null;
 let lastProfiles: ProfilesDocument | null = null;
+let lastWorkspaces: WorkspacesDocument | null = null;
 let hermesModel: HermesSettings | null = null;
 let hermesEditing = false;
 let activeRuntimeId: string | null = null;
@@ -242,7 +263,9 @@ type RepairStatusFilter = "all" | RepairPreviewResponse["checks"][number]["statu
 const repairPreviewByRuntime = new Map<string, RepairPreviewResponse>();
 const repairFilterByRuntime = new Map<string, RepairStatusFilter>();
 let selectedPresetName = "";
+let selectedWorkspaceName = "";
 let presetMenuOpen = false;
+let workspaceMenuOpen = false;
 
 function escapeHtml(value: string): string {
   return value
@@ -1026,6 +1049,128 @@ async function loadProfiles() {
   }
 }
 
+function setWorkspaceTriggerLabel(name: string | null) {
+  workspaceTriggerLabelEl.textContent = name ?? t("workspaces.noActive");
+}
+
+function closeWorkspaceMenu() {
+  workspaceMenuOpen = false;
+  workspaceMenuEl.hidden = true;
+  workspaceTriggerEl.setAttribute("aria-expanded", "false");
+  workspacePickerEl.classList.remove("is-open");
+}
+
+function openWorkspaceMenu() {
+  if (workspaceTriggerEl.disabled) {
+    return;
+  }
+  workspaceMenuOpen = true;
+  workspaceMenuEl.hidden = false;
+  workspaceTriggerEl.setAttribute("aria-expanded", "true");
+  workspacePickerEl.classList.add("is-open");
+}
+
+function toggleWorkspaceMenu() {
+  if (workspaceMenuOpen) {
+    closeWorkspaceMenu();
+  } else {
+    openWorkspaceMenu();
+  }
+}
+
+function renderWorkspaceOptions(doc: WorkspacesDocument) {
+  const names = Object.keys(doc.workspaces).sort();
+  if (names.length === 0) {
+    workspaceMenuEl.innerHTML = "";
+    selectedWorkspaceName = "";
+    setWorkspaceTriggerLabel(null);
+    workspaceTriggerEl.disabled = true;
+    closeWorkspaceMenu();
+    return;
+  }
+
+  selectedWorkspaceName =
+    selectedWorkspaceName && names.includes(selectedWorkspaceName)
+      ? selectedWorkspaceName
+      : (doc.active ?? names[0]);
+  setWorkspaceTriggerLabel(selectedWorkspaceName);
+  workspaceTriggerEl.disabled = false;
+
+  workspaceMenuEl.innerHTML = names
+    .map((name) => {
+      const activeOption = name === selectedWorkspaceName;
+      const entry = doc.workspaces[name];
+      const meta = entry?.path ?? "";
+      return `
+        <button
+          type="button"
+          class="picker-option ${activeOption ? "is-active" : ""}"
+          role="option"
+          aria-selected="${activeOption}"
+          data-workspace="${escapeHtml(name)}"
+        >
+          <span class="picker-option-body">
+            <span class="picker-option-label">${escapeHtml(name)}</span>
+            ${meta ? `<span class="picker-option-meta">${escapeHtml(meta)}</span>` : ""}
+          </span>
+          <span class="picker-option-check" aria-hidden="true">✓</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function renderWorkspaces(doc: WorkspacesDocument) {
+  lastWorkspaces = doc;
+  const names = Object.keys(doc.workspaces);
+
+  if (names.length === 0) {
+    workspaceStatusEl.textContent = t("workspaces.none");
+    workspaceApplyEl.disabled = true;
+    workspaceHintEl.textContent = t("workspaces.noneHint");
+    renderWorkspaceOptions({ active: null, workspaces: {} });
+    return;
+  }
+
+  workspaceStatusEl.textContent = doc.active
+    ? t("workspaces.active", { name: doc.active })
+    : t("workspaces.noActive");
+  renderWorkspaceOptions(doc);
+  workspaceApplyEl.disabled = false;
+  workspaceHintEl.textContent = t("workspaces.switchHint");
+}
+
+async function loadWorkspaces() {
+  try {
+    const doc = await invoke<WorkspacesDocument>("list_workspaces_command");
+    renderWorkspaces(doc);
+  } catch (error) {
+    workspaceStatusEl.textContent = t("workspaces.failed");
+    workspaceHintEl.textContent = String(error);
+    workspaceApplyEl.disabled = true;
+  }
+}
+
+async function applyWorkspace() {
+  const name = selectedWorkspaceName;
+  if (!name) {
+    return;
+  }
+
+  closeWorkspaceMenu();
+  workspaceApplyEl.disabled = true;
+  workspaceHintEl.textContent = t("workspaces.applying", { name });
+  try {
+    await invoke("use_workspace_command", { name });
+    workspaceHintEl.textContent = t("workspaces.updated", { name });
+    await loadWorkspaces();
+  } catch (error) {
+    workspaceHintEl.textContent = String(error);
+  } finally {
+    workspaceApplyEl.disabled = false;
+  }
+}
+
 function setLoading(loading: boolean) {
   refreshBtn.disabled = loading;
   refreshBtn.classList.toggle("is-loading", loading);
@@ -1256,6 +1401,9 @@ async function switchLocale(next: Locale) {
   if (lastProfiles) {
     renderProfiles(lastProfiles);
   }
+  if (lastWorkspaces) {
+    renderWorkspaces(lastWorkspaces);
+  }
   if (lastReport) {
     await renderReport(lastReport);
   } else {
@@ -1371,6 +1519,25 @@ presetApplyEl.addEventListener("click", () => {
   void applyPreset();
 });
 
+workspaceApplyEl.addEventListener("click", () => {
+  void applyWorkspace();
+});
+
+workspaceTriggerEl.addEventListener("click", () => {
+  toggleWorkspaceMenu();
+});
+
+workspaceMenuEl.addEventListener("click", (event) => {
+  const option = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-workspace]");
+  const name = option?.dataset.workspace;
+  if (!name || !lastWorkspaces) {
+    return;
+  }
+  selectedWorkspaceName = name;
+  renderWorkspaceOptions(lastWorkspaces);
+  closeWorkspaceMenu();
+});
+
 presetTriggerEl.addEventListener("click", () => {
   togglePresetMenu();
 });
@@ -1391,18 +1558,19 @@ presetMenuEl.addEventListener("click", (event) => {
 });
 
 document.addEventListener("click", (event) => {
-  if (!presetMenuOpen) {
-    return;
-  }
   const target = event.target as Node;
-  if (!presetPickerEl.contains(target)) {
+  if (presetMenuOpen && !presetPickerEl.contains(target)) {
     closePresetMenu();
+  }
+  if (workspaceMenuOpen && !workspacePickerEl.contains(target)) {
+    closeWorkspaceMenu();
   }
 });
 
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") {
     closePresetMenu();
+    closeWorkspaceMenu();
   }
 });
 
@@ -1414,4 +1582,5 @@ setLocale(getLocale());
 applyStaticI18n();
 updateLangButtons();
 void loadProfiles();
+void loadWorkspaces();
 void refresh();

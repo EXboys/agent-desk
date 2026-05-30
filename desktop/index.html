@@ -90,6 +90,37 @@
         <p id="preset-hint" class="section-footnote"></p>
       </section>
 
+      <section class="widget-section">
+        <div class="section-label">
+          <span class="section-icon" aria-hidden="true">▣</span>
+          <h2 data-i18n="workspaces.title">Workspaces</h2>
+        </div>
+        <p id="workspace-status" class="section-hint" data-i18n="workspaces.loading">Loading workspaces…</p>
+        <div class="preset-row">
+          <div class="picker" id="workspace-picker">
+            <button
+              type="button"
+              class="picker-trigger"
+              id="workspace-trigger"
+              aria-haspopup="listbox"
+              aria-expanded="false"
+              disabled
+            >
+              <span class="picker-leading" aria-hidden="true">▣</span>
+              <span class="picker-value" id="workspace-trigger-label">—</span>
+              <span class="picker-chevron" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </button>
+            <div class="picker-menu" id="workspace-menu" role="listbox" hidden></div>
+          </div>
+          <button id="workspace-apply" type="button" class="btn-secondary" data-i18n="workspaces.switch">Switch</button>
+        </div>
+        <p id="workspace-hint" class="section-footnote"></p>
+      </section>
+
       <section class="widget-section runtime-section">
         <div class="section-label">
           <span class="section-icon" aria-hidden="true">⬡</span>

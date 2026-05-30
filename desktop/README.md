@@ -4,7 +4,8 @@
 
 ## Features (MVP)
 
-- System tray with **Show**, **Run doctor**, **Quit**
+- System tray with **Show**, **Run doctor**, **Quit** (tooltip shows active workspace)
+- Workspace picker: list and switch registered project workspaces
 - Small window listing discovered runtimes and company profile status
 - Hermes model preset switching and API key status
 - Foundation for future repair reports and guided fixes
