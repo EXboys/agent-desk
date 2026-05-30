@@ -359,9 +359,7 @@ fn main() -> Result<()> {
                 WorkspaceHookAction::Install { shell } => {
                     commands::workspace::hook_install(&shell)?
                 }
-                WorkspaceHookAction::Status { json } => {
-                    commands::workspace::hook_status(json)?
-                }
+                WorkspaceHookAction::Status { json } => commands::workspace::hook_status(json)?,
             },
             WorkspaceAction::Status { path, json } => commands::workspace::status(path, json)?,
             WorkspaceAction::Doctor { json } => commands::workspace::doctor(json)?,

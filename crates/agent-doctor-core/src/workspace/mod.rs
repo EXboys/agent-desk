@@ -22,8 +22,8 @@ pub mod backup;
 pub mod baseline;
 pub mod claude_mcp;
 pub mod fix;
-pub mod hook_status;
 pub mod gateway;
+pub mod hook_status;
 pub mod matrix;
 pub mod path;
 pub mod paths_check;
@@ -81,8 +81,8 @@ pub use claude_mcp::{migrate_claude_global_mcp_to_project, ClaudeMcpMigrationRep
 pub use fix::{
     remove_workspace, workspace_fix, WorkspaceFixAction, WorkspaceFixOptions, WorkspaceFixReport,
 };
-pub use hook_status::{workspace_hook_status, ShellHookStatus};
 pub use gateway::{gateway_restart_hint, restart_workspace_gateways, GatewayRestartReport};
+pub use hook_status::{workspace_hook_status, ShellHookStatus};
 pub use matrix::{workspace_capability_matrix, CapabilityCell, CapabilityMatrix};
 pub use paths_check::{scan_workspace_path_references, PathReferenceIssue};
 pub use shell::{

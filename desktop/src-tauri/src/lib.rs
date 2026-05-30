@@ -3,8 +3,8 @@ use agent_doctor_core::{
     load_profiles, load_workspaces, probe_runtime, restore_runtime_backup, run_doctor,
     runtime_supports_playbook, set_runtime_model, suggest_runtime_repairs, use_profile,
     use_workspace_with_options, workspace_doctor, workspace_fix, workspace_status, ApplyReport,
-    DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProbeStatus, ProfilesDocument,
-    RepairExecuteOptions, RepairExecuteReport, RestoreReport, RuntimeModelPreset,
+    DoctorReport, HermesAdapter, HermesProfilePreset, HermesSettings, ProbeStatus,
+    ProfilesDocument, RepairExecuteOptions, RepairExecuteReport, RestoreReport, RuntimeModelPreset,
     RuntimeProbeReport, UseProfileReport, UseWorkspaceOptions, UseWorkspaceReport,
     WorkspaceDoctorReport, WorkspaceFixOptions, WorkspaceFixReport, WorkspaceStatusReport,
     WorkspacesDocument,
@@ -35,7 +35,10 @@ fn list_workspaces_command() -> WorkspacesDocument {
 }
 
 #[tauri::command]
-fn use_workspace_command(name: String, app: tauri::AppHandle) -> Result<UseWorkspaceReport, String> {
+fn use_workspace_command(
+    name: String,
+    app: tauri::AppHandle,
+) -> Result<UseWorkspaceReport, String> {
     let report = use_workspace_with_options(
         &name,
         &UseWorkspaceOptions {
@@ -74,8 +77,13 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<ta
 
     let doc = load_workspaces().unwrap_or_default();
     let show = MenuItem::with_id(app, "show", "Show Agent Doctor", true, None::<&str>)?;
-    let ws_doctor =
-        MenuItem::with_id(app, "workspace_doctor", "Workspace check", true, None::<&str>)?;
+    let ws_doctor = MenuItem::with_id(
+        app,
+        "workspace_doctor",
+        "Workspace check",
+        true,
+        None::<&str>,
+    )?;
     let doctor = MenuItem::with_id(app, "doctor", "Run doctor", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
@@ -95,8 +103,13 @@ fn build_tray_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<ta
         )?);
     }
 
-    let none_item =
-        MenuItem::with_id(app, "workspace:none", "(no workspaces)", false, None::<&str>)?;
+    let none_item = MenuItem::with_id(
+        app,
+        "workspace:none",
+        "(no workspaces)",
+        false,
+        None::<&str>,
+    )?;
     let switch_refs: Vec<&dyn IsMenuItem<tauri::Wry>> = if switch_items.is_empty() {
         vec![&none_item as &dyn IsMenuItem<tauri::Wry>]
     } else {

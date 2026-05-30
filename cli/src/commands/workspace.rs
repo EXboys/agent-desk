@@ -3,8 +3,8 @@ use agent_doctor_core::{
     install_zsh_hook, load_workspaces, match_workspace_for_path, remove_workspace,
     render_direnv_envrc, render_shell_env_for_name, use_workspace_with_options,
     workspace_capability_matrix, workspace_doctor, workspace_fix, workspace_hook_status,
-    workspace_show, workspace_status, write_direnv_envrc, UseWorkspaceOptions, WorkspaceCheckStatus,
-    WorkspaceFixOptions, WorkspacesDocument,
+    workspace_show, workspace_status, write_direnv_envrc, UseWorkspaceOptions,
+    WorkspaceCheckStatus, WorkspaceFixOptions, WorkspacesDocument,
 };
 use anyhow::{bail, Result};
 
@@ -221,10 +221,7 @@ pub fn hook_status(json: bool) -> Result<()> {
             status.hook_path.display()
         );
         if let Some(rc) = &status.rc_file {
-            println!(
-                "    {rc_marker} rc sources hook: {}",
-                rc.display()
-            );
+            println!("    {rc_marker} rc sources hook: {}", rc.display());
         } else {
             println!("    · rc file not found");
         }

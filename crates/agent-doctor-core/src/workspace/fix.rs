@@ -62,8 +62,7 @@ pub fn workspace_fix(options: &WorkspaceFixOptions) -> Result<WorkspaceFixReport
     let mut actions = plan_fixes(&active_name, &entry, &doctor, options);
 
     if options.migrate_claude_mcp {
-        let migration =
-            migrate_claude_global_mcp_to_project(&entry.path, options.dry_run)?;
+        let migration = migrate_claude_global_mcp_to_project(&entry.path, options.dry_run)?;
         actions.insert(
             0,
             WorkspaceFixAction {
@@ -214,9 +213,7 @@ fn plan_fixes(
     actions
 }
 
-fn format_migration_detail(
-    migration: &super::claude_mcp::ClaudeMcpMigrationReport,
-) -> String {
+fn format_migration_detail(migration: &super::claude_mcp::ClaudeMcpMigrationReport) -> String {
     let mode = if migration.dry_run {
         "preview"
     } else if migration.applied {

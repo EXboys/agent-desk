@@ -55,8 +55,11 @@ pub fn enter_workspace(
     let bash_eval = render_shell_env("bash", &use_report)?;
     let powershell_eval = render_shell_env("powershell", &use_report)?;
     let cd_command = format!("cd {}", shell_single_quote(&use_report.path));
-    let zsh_enter = format!("{cd_command} && eval \"$(agent-doctor workspace env --shell zsh --name {name})\"");
-    let bash_enter = format!("{cd_command} && eval \"$(agent-doctor workspace env --shell bash --name {name})\"");
+    let zsh_enter =
+        format!("{cd_command} && eval \"$(agent-doctor workspace env --shell zsh --name {name})\"");
+    let bash_enter = format!(
+        "{cd_command} && eval \"$(agent-doctor workspace env --shell bash --name {name})\""
+    );
     let powershell_enter = format!(
         "Set-Location -LiteralPath {}; {}",
         powershell_single_quote(&use_report.path),

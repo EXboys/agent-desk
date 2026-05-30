@@ -57,7 +57,10 @@ fn inspect_shell_hook(
 
 fn rc_references_hook(contents: &str, hook_path: &Path) -> bool {
     let hook = hook_path.display().to_string();
-    let hook_name = hook_path.file_name().and_then(|name| name.to_str()).unwrap_or("");
+    let hook_name = hook_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
     contents.contains(&hook)
         || contents.contains("agent-doctor/hooks/workspace")
         || (hook_name.contains("workspace") && contents.contains(hook_name))
